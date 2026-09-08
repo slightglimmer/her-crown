@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
 import { ServiceChips } from '../components/ServiceChips';
-import { getStylist, SERVICES, STYLISTS } from '../data/stylists';
+import { SERVICES } from '../data/stylists';
+import { apiFetch } from '../api/http';
+import { useStylists } from '../state/StylistsContext';
 import styles from './ReviewFlow.module.css';
 
 const STEPS = [
@@ -73,7 +75,10 @@ function initialState() {
 
 export function ReviewFlow() {
   const [searchParams] = useSearchParams();
+  const { stylists, loading, refresh } = useStylists();
   const [state, setState] = useState(initialState);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const photoInputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
@@ -81,18 +86,18 @@ export function ReviewFlow() {
   // that stylist and skip straight to step 2 (Verify), per the handoff prompt.
   useEffect(() => {
     const presetId = searchParams.get('stylist');
-    if (presetId && getStylist(presetId)) {
+    if (presetId && stylists.some((st) => st.id === presetId)) {
       setState((s) => (s.stylistId ? s : { ...s, stylistId: presetId, step: 1 }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stylists]);
 
   function set(patch: Partial<ReturnType<typeof initialState>>) {
     setState((s) => ({ ...s, ...patch }));
   }
 
   const s = state;
-  const stylist = s.stylistId ? getStylist(s.stylistId) ?? null : null;
+  const stylist = s.stylistId ? stylists.find((st) => st.id === s.stylistId) ?? null : null;
 
   const rail = STEPS.map((st, i) => ({
     n: st.n,
@@ -149,7 +154,31 @@ export function ReviewFlow() {
     set({ step: Math.max(0, s.step - 1), hover: 0 });
   }
 
-  function next() {
+  async function next() {
+    if (s.step === LAST_STEP) {
+      if (!stylist) return;
+      setSubmitting(true);
+      setSubmitError(null);
+      try {
+        await apiFetch(`/api/stylists/${stylist.id}/reviews`, {
+          method: 'POST',
+          body: JSON.stringify({
+            rating: s.rating,
+            services: s.services,
+            paid: s.paid || undefined,
+            photos: photosAdded,
+            answers: s.answers,
+          }),
+        });
+        await refresh();
+        set({ step: s.step + 1, hover: 0 });
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : 'Could not file the review');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
     set({ step: s.step + 1, hover: 0 });
   }
 
@@ -181,33 +210,42 @@ export function ReviewFlow() {
             <p className={styles.sub}>
               Pick the chair you sat in. We only take reviews from people who actually sat down — receipt and all.
             </p>
-            <div className={styles.stylistList}>
-              {STYLISTS.map((st) => (
-                <button
-                  key={st.id}
-                  type="button"
-                  className={`card ${styles.stylistCard}`}
-                  style={{ borderColor: s.stylistId === st.id ? 'var(--color-accent)' : undefined }}
-                  onClick={() => pickStylist(st.id)}
-                >
-                  <span>
-                    <span className="card-kicker">{st.area}</span>
-                    <span className="card-title" style={{ fontSize: 21, display: 'block' }}>
-                      {st.name}
+            {!loading && stylists.length === 0 ? (
+              <p className={styles.sub} style={{ marginTop: 24 }}>
+                Nobody's listed yet.{' '}
+                <Link to="/join" style={{ color: 'var(--color-accent-700)' }}>
+                  Are you a stylist? List your chair.
+                </Link>
+              </p>
+            ) : (
+              <div className={styles.stylistList}>
+                {stylists.map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    className={`card ${styles.stylistCard}`}
+                    style={{ borderColor: s.stylistId === st.id ? 'var(--color-accent)' : undefined }}
+                    onClick={() => pickStylist(st.id)}
+                  >
+                    <span>
+                      <span className="card-kicker">{st.area}</span>
+                      <span className="card-title" style={{ fontSize: 21, display: 'block' }}>
+                        {st.name}
+                      </span>
+                      <span className="card-body" style={{ display: 'block' }}>
+                        {st.specialty}
+                      </span>
                     </span>
-                    <span className="card-body" style={{ display: 'block' }}>
-                      {st.specialty}
+                    <span className={styles.stylistCardRight}>
+                      <span className={styles.stylistScore}>{st.score !== null ? st.score.toFixed(1) : 'New'}</span>
+                      <span className="tag tag-accent" style={{ whiteSpace: 'nowrap' }}>
+                        {st.verified > 0 ? `${st.verified} verified` : 'New'}
+                      </span>
                     </span>
-                  </span>
-                  <span className={styles.stylistCardRight}>
-                    <span className={styles.stylistScore}>{st.score.toFixed(1)}</span>
-                    <span className="tag tag-accent" style={{ whiteSpace: 'nowrap' }}>
-                      {st.verified} verified
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -365,8 +403,8 @@ export function ReviewFlow() {
             <div className={styles.doneKicker}>Filed</div>
             <h1 className={styles.doneTitle}>{doneHeadline}</h1>
             <p className={styles.doneBody}>
-              We're checking your receipt now. Once it clears, your review posts with a verified badge and your
-              photos sit at the top of {stylist ? stylist.name.split(' ')[0] : 'her'}'s page.
+              Your review is live on {stylist ? stylist.name.split(' ')[0] : 'her'}'s page. She can see it and reply
+              once.
             </p>
             <div className={styles.summary}>
               <div className={styles.summaryRow}>
@@ -398,8 +436,8 @@ export function ReviewFlow() {
               ← Back
             </button>
             <div className={styles.footerRight}>
-              <span className={styles.gateNote}>{notes[s.step]}</span>
-              <button type="button" className="btn btn-primary" onClick={next} disabled={!gates[s.step]}>
+              <span className={styles.gateNote}>{submitError ?? notes[s.step]}</span>
+              <button type="button" className="btn btn-primary" onClick={next} disabled={!gates[s.step] || submitting}>
                 {s.step === LAST_STEP ? 'File the review' : 'Continue'}
               </button>
             </div>

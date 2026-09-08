@@ -1,13 +1,15 @@
 import { Route, Routes } from 'react-router-dom';
 import { StylistDirectory } from './pages/StylistDirectory';
 import { ReviewFlow } from './pages/ReviewFlow';
-import { ClaimFlow } from './pages/ClaimFlow';
+import { StylistSignup } from './pages/StylistSignup';
+import { StylistLogin } from './pages/StylistLogin';
+import { StylistDashboard } from './pages/StylistDashboard';
 import { AdminLogin } from './pages/AdminLogin';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { useClaims } from './state/ClaimsContext';
+import { useStylists } from './state/StylistsContext';
 
 function ApiErrorBanner() {
-  const { loadError } = useClaims();
+  const { loadError } = useStylists();
   if (!loadError) return null;
   return (
     <div
@@ -19,7 +21,7 @@ function ApiErrorBanner() {
         textAlign: 'center',
       }}
     >
-      Can't reach the claims server ({loadError}) — claim status and "Is this you?" won't work until it's back.
+      Can't reach the server ({loadError}) — the directory won't show real stylists until it's back.
     </div>
   );
 }
@@ -31,7 +33,9 @@ function App() {
       <Routes>
         <Route path="/" element={<StylistDirectory />} />
         <Route path="/review" element={<ReviewFlow />} />
-        <Route path="/claim/:id" element={<ClaimFlow />} />
+        <Route path="/join" element={<StylistSignup />} />
+        <Route path="/stylist/login" element={<StylistLogin />} />
+        <Route path="/stylist/dashboard" element={<StylistDashboard />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
       </Routes>

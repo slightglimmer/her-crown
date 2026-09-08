@@ -24,20 +24,21 @@ function jwtSecret(): string {
   return secret;
 }
 
-export interface AdminTokenPayload {
+export interface TokenPayload {
   sub: number;
   email: string;
+  role: 'admin' | 'stylist';
 }
 
-export function signAdminToken(payload: AdminTokenPayload): string {
+export function signToken(payload: TokenPayload): string {
   return jwt.sign(payload, jwtSecret(), { expiresIn: '12h' });
 }
 
 export interface AuthedRequest extends Request {
-  admin?: AdminTokenPayload;
+  auth?: TokenPayload;
 }
 
-export function requireAdmin(req: AuthedRequest, res: Response, next: NextFunction) {
+function authenticate(req: AuthedRequest, res: Response, next: NextFunction) {
   const header = req.header('authorization') ?? '';
   const [scheme, token] = header.split(' ');
   if (scheme !== 'Bearer' || !token) {
@@ -45,9 +46,29 @@ export function requireAdmin(req: AuthedRequest, res: Response, next: NextFuncti
     return;
   }
   try {
-    req.admin = jwt.verify(token, jwtSecret()) as unknown as AdminTokenPayload;
+    req.auth = jwt.verify(token, jwtSecret()) as unknown as TokenPayload;
     next();
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
   }
+}
+
+export function requireAdmin(req: AuthedRequest, res: Response, next: NextFunction) {
+  authenticate(req, res, () => {
+    if (req.auth?.role !== 'admin') {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
+    }
+    next();
+  });
+}
+
+export function requireStylist(req: AuthedRequest, res: Response, next: NextFunction) {
+  authenticate(req, res, () => {
+    if (req.auth?.role !== 'stylist') {
+      res.status(403).json({ error: 'Stylist access required' });
+      return;
+    }
+    next();
+  });
 }

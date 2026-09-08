@@ -166,11 +166,6 @@
   color: var(--color-neutral-700);
 }
 
-.claimedTag {
-  text-transform: none;
-  letter-spacing: 0.02em;
-}
-
 .reply {
   font-size: 14px;
   line-height: 1.5;
@@ -183,17 +178,6 @@
   font-family: var(--font-heading);
   font-weight: 600;
   color: var(--color-text);
-}
-
-.claimLink {
-  font-size: 12px;
-  padding-inline: 0;
-}
-
-.claimPending {
-  font-size: 12px;
-  color: var(--color-neutral-700);
-  margin-top: var(--space-2);
 }
 
 .name {
@@ -218,13 +202,6 @@
   max-width: 56ch;
   padding-left: var(--space-3);
   border-left: 2px solid var(--color-accent-2);
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
 }
 
 .rowRight {

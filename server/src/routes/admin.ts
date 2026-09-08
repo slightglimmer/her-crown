@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { signAdminToken, verifyPassword, requireAdmin, type AuthedRequest } from '../auth.js';
+import { signToken, verifyPassword, requireAdmin, type AuthedRequest } from '../auth.js';
+import { uniqueSlug } from '../slug.js';
 
 export const adminRouter = Router();
 
@@ -10,33 +11,35 @@ interface AdminUserRow {
   password_hash: string;
 }
 
-interface ClaimRow {
+interface ApplicationRow {
   id: number;
-  stylist_id: string;
-  status: 'pending' | 'claimed' | 'rejected';
-  owner_name: string;
-  owner_contact: string;
-  note: string | null;
-  specialty: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  name: string;
+  area: string;
+  chair: string;
+  specialty: string;
   price: string | null;
-  services: string | null;
-  reply: string | null;
+  services: string;
+  email: string;
+  password_hash: string;
+  note: string | null;
+  stylist_id: number | null;
   created_at: string;
   decided_at: string | null;
 }
 
-function toApiClaim(row: ClaimRow) {
+function toApiApplication(row: ApplicationRow) {
   return {
     id: row.id,
-    stylistId: row.stylist_id,
     status: row.status,
-    ownerName: row.owner_name,
-    ownerContact: row.owner_contact,
-    note: row.note,
+    name: row.name,
+    area: row.area,
+    chair: row.chair,
     specialty: row.specialty,
     price: row.price,
-    services: row.services ? JSON.parse(row.services) : null,
-    reply: row.reply,
+    services: JSON.parse(row.services) as string[],
+    email: row.email,
+    note: row.note,
     createdAt: row.created_at,
     decidedAt: row.decided_at,
   };
@@ -58,42 +61,73 @@ adminRouter.post('/login', (req, res) => {
     return;
   }
 
-  const token = signAdminToken({ sub: user.id, email: user.email });
+  const token = signToken({ sub: user.id, email: user.email, role: 'admin' });
   res.json({ token, email: user.email });
 });
 
 adminRouter.use(requireAdmin);
 
-adminRouter.get('/claims', (req: AuthedRequest, res) => {
+adminRouter.get('/applications', (req: AuthedRequest, res) => {
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
   const rows = (
     status
-      ? db.prepare('SELECT * FROM claims WHERE status = ? ORDER BY id DESC').all(status)
-      : db.prepare('SELECT * FROM claims ORDER BY id DESC').all()
-  ) as ClaimRow[];
-  res.json(rows.map(toApiClaim));
+      ? db.prepare('SELECT * FROM applications WHERE status = ? ORDER BY id DESC').all(status)
+      : db.prepare('SELECT * FROM applications ORDER BY id DESC').all()
+  ) as ApplicationRow[];
+  res.json(rows.map(toApiApplication));
 });
 
-function decide(id: number, status: 'claimed' | 'rejected'): ClaimRow | undefined {
-  const info = db.prepare("UPDATE claims SET status = ?, decided_at = datetime('now') WHERE id = ?").run(status, id);
-  if (info.changes === 0) return undefined;
-  return db.prepare('SELECT * FROM claims WHERE id = ?').get(id) as ClaimRow;
-}
-
-adminRouter.post('/claims/:id/approve', (req: AuthedRequest, res) => {
-  const claim = decide(Number(req.params.id), 'claimed');
-  if (!claim) {
+adminRouter.post('/applications/:id/approve', (req: AuthedRequest, res) => {
+  const id = Number(req.params.id);
+  const app = db.prepare('SELECT * FROM applications WHERE id = ?').get(id) as ApplicationRow | undefined;
+  if (!app) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
-  res.json(toApiClaim(claim));
-});
-
-adminRouter.post('/claims/:id/reject', (req: AuthedRequest, res) => {
-  const claim = decide(Number(req.params.id), 'rejected');
-  if (!claim) {
-    res.status(404).json({ error: 'Not found' });
+  if (app.status !== 'pending') {
+    res.status(409).json({ error: `Already ${app.status}` });
     return;
   }
-  res.json(toApiClaim(claim));
+
+  const slug = uniqueSlug(app.name);
+
+  const tx = db.transaction(() => {
+    const stylistInfo = db
+      .prepare(
+        `INSERT INTO stylists (slug, name, area, chair, specialty, price, services, email, password_hash)
+         VALUES (@slug, @name, @area, @chair, @specialty, @price, @services, @email, @passwordHash)`,
+      )
+      .run({
+        slug,
+        name: app.name,
+        area: app.area,
+        chair: app.chair,
+        specialty: app.specialty,
+        price: app.price,
+        services: app.services,
+        email: app.email,
+        passwordHash: app.password_hash,
+      });
+
+    db.prepare(
+      "UPDATE applications SET status = 'approved', decided_at = datetime('now'), stylist_id = ? WHERE id = ?",
+    ).run(stylistInfo.lastInsertRowid, id);
+  });
+  tx();
+
+  const updated = db.prepare('SELECT * FROM applications WHERE id = ?').get(id) as ApplicationRow;
+  res.json(toApiApplication(updated));
+});
+
+adminRouter.post('/applications/:id/reject', (req: AuthedRequest, res) => {
+  const id = Number(req.params.id);
+  const info = db
+    .prepare("UPDATE applications SET status = 'rejected', decided_at = datetime('now') WHERE id = ? AND status = 'pending'")
+    .run(id);
+  if (info.changes === 0) {
+    res.status(404).json({ error: 'Not found or already decided' });
+    return;
+  }
+  const updated = db.prepare('SELECT * FROM applications WHERE id = ?').get(id) as ApplicationRow;
+  res.json(toApiApplication(updated));
 });

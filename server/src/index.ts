@@ -2,7 +2,8 @@ import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
 import './db.js';
-import { claimsRouter } from './routes/claims.js';
+import { applicationsRouter } from './routes/applications.js';
+import { stylistsRouter } from './routes/stylists.js';
 import { adminRouter } from './routes/admin.js';
 
 const app = express();
@@ -13,7 +14,8 @@ app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-app.use('/api/claims', claimsRouter);
+app.use('/api/applications', applicationsRouter);
+app.use('/api/stylists', stylistsRouter);
 app.use('/api/admin', adminRouter);
 
 app.listen(port, () => {

@@ -1,0 +1,49 @@
+.page {
+  min-height: 100vh;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  font-family: var(--font-body);
+}
+
+.wrap {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.step {
+  margin-top: var(--space-8);
+}
+
+.h1 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.sub {
+  font-size: 15px;
+  line-height: 1.5;
+  margin: var(--space-3) 0 0;
+  color: var(--color-neutral-700);
+}
+
+.form {
+  margin-top: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--color-accent-2-700);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
