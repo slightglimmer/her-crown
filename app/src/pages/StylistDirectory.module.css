@@ -1,0 +1,253 @@
+.page {
+  min-height: 100vh;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  font-family: var(--font-body);
+}
+
+.wrap {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.hero {
+  margin-top: var(--space-8);
+}
+
+.heroTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 46px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  max-width: 20ch;
+  text-wrap: pretty;
+}
+
+.heroSub {
+  font-size: 17px;
+  line-height: 1.55;
+  max-width: 58ch;
+  margin: var(--space-3) 0 0;
+  color: var(--color-neutral-800);
+}
+
+.filterHead {
+  margin-top: var(--space-8);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.chipsSection {
+  margin-top: var(--space-6);
+}
+
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+
+.chipsRow {
+  margin-top: var(--space-2);
+}
+
+.recsSection {
+  margin-top: var(--space-8);
+}
+
+.recsHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.h2 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.recReason {
+  font-size: 13px;
+  color: var(--color-neutral-700);
+}
+
+.recGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.recCard {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.recScoreRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.recScore {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
+.resultsHead {
+  margin-top: var(--space-8);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.sortRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-size: 13px;
+}
+
+.sortLabel {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+
+.sortOption {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-neutral-700);
+  text-decoration: none;
+}
+
+.sortOption[data-active] {
+  text-decoration: underline;
+}
+
+.results {
+  margin-top: var(--space-4);
+  display: grid;
+  gap: var(--space-6);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4) var(--space-6);
+  align-items: start;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+}
+
+.area {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+
+.name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 27px;
+  line-height: 1.15;
+  margin-top: 4px;
+}
+
+.specialty {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-top: 6px;
+  max-width: 52ch;
+}
+
+.quote {
+  font-size: 15px;
+  line-height: 1.6;
+  margin-top: var(--space-3);
+  max-width: 56ch;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-accent-2);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.rowRight {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  text-align: right;
+}
+
+.rowScore {
+  font-family: var(--font-heading);
+  font-size: 34px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowMeta {
+  font-size: 12px;
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+.rateBtn {
+  margin-top: var(--space-2);
+  white-space: nowrap;
+}
+
+.empty {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+}
+
+.emptyTitle {
+  font-family: var(--font-heading);
+  font-size: 24px;
+}
+
+.emptyBody {
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 50ch;
+  margin: var(--space-2) 0 0;
+  color: var(--color-neutral-800);
+}
+
+.emptyClear {
+  margin-top: var(--space-2);
+}
+
+.footerNote {
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-neutral-700);
+  max-width: 60ch;
+}

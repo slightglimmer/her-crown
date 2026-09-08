@@ -1,0 +1,330 @@
+.page {
+  min-height: 100vh;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  font-family: var(--font-body);
+}
+
+.wrap {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-3);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.railItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.railN {
+  font-variant-numeric: tabular-nums;
+}
+
+.step {
+  margin-top: var(--space-8);
+}
+
+.stepKicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+
+.h1 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: var(--space-2) 0 0;
+  max-width: 24ch;
+}
+
+.h1First {
+  font-size: 44px;
+  line-height: 1.08;
+  margin: 0;
+  max-width: 22ch;
+  text-wrap: pretty;
+}
+
+.sub {
+  font-size: 17px;
+  line-height: 1.55;
+  max-width: 56ch;
+  margin: var(--space-3) 0 0;
+  opacity: 0.75;
+}
+
+/* — step 1: pick — */
+.stylistList {
+  margin-top: var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.stylistCard {
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-body);
+  border: 1px solid transparent;
+}
+
+.stylistCardRight {
+  text-align: right;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.stylistScore {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* — step 2: verify — */
+.dropTarget {
+  appearance: none;
+  margin-top: var(--space-6);
+  cursor: pointer;
+  width: 100%;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  border: 1.5px dashed var(--color-neutral-400);
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-100);
+  font-family: var(--font-body);
+}
+
+.dropTitle {
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+
+.dropNote {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-top: 6px;
+}
+
+.smallNote {
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 58ch;
+  margin: var(--space-3) 0 0;
+  color: var(--color-neutral-700);
+}
+
+/* — step 3: rating — */
+.stars {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.star {
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  line-height: 1;
+  padding: 0;
+}
+
+.ratingLabel {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  margin-top: var(--space-4);
+  min-height: 34px;
+}
+
+.ratingHint {
+  font-size: 15px;
+  line-height: 1.55;
+  max-width: 54ch;
+  margin: var(--space-2) 0 0;
+  color: var(--color-neutral-700);
+}
+
+/* — step 4: service — */
+.chipsRow {
+  margin-top: var(--space-6);
+}
+
+.paidField {
+  margin-top: var(--space-6);
+  max-width: 320px;
+}
+
+/* — step 5: photos — */
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.photoSlot {
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: var(--space-3);
+  border: 1.5px dashed var(--color-neutral-400);
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-100);
+  font-family: var(--font-body);
+}
+
+.photoSlot[data-filled] {
+  background: var(--color-accent-100);
+  border-color: var(--color-accent);
+}
+
+.photoTitle {
+  font-family: var(--font-heading);
+  font-size: 18px;
+}
+
+.photoNote {
+  font-size: 13px;
+  color: var(--color-neutral-700);
+}
+
+/* — step 6: write-up — */
+.prompts {
+  display: grid;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.promptTitle {
+  font-family: var(--font-heading);
+  font-size: 21px;
+  line-height: 1.3;
+  max-width: 46ch;
+}
+
+.promptHelp {
+  font-size: 13px;
+  color: var(--color-neutral-700);
+  margin: 6px 0 var(--space-2);
+}
+
+.houseRule {
+  margin-top: var(--space-6);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 58ch;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-accent-2);
+}
+
+/* — confirmation — */
+.doneKicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent-2-700);
+}
+
+.doneTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 46px;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: var(--space-2) 0 0;
+  max-width: 22ch;
+}
+
+.doneBody {
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 58ch;
+  margin: var(--space-4) 0 0;
+}
+
+.summary {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  font-size: 15px;
+}
+
+.summaryRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.summaryLabel {
+  width: 90px;
+  flex: none;
+  color: var(--color-neutral-700);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.restartBtn {
+  margin-top: var(--space-8);
+}
+
+/* — footer nav — */
+.footerNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.gateNote {
+  font-size: 13px;
+  color: var(--color-neutral-700);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

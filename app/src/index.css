@@ -1,0 +1,19 @@
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-accent-700);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-600);
+  text-decoration: underline;
+}
+
+#root {
+  min-height: 100vh;
+}
