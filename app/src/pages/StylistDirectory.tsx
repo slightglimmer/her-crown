@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
 import { ServiceChips } from '../components/ServiceChips';
 import { SERVICES, STYLISTS, type Chair, type Stylist } from '../data/stylists';
+import { useClaims } from '../state/ClaimsContext';
 import styles from './StylistDirectory.module.css';
 
 type SortKey = 'score' | 'verified' | 'new';
@@ -33,6 +34,7 @@ export function StylistDirectory() {
   const [chair, setChair] = useState<Chair | 'either'>('either');
   const [picked, setPicked] = useState<string[]>(['Knotless braids']);
   const [sort, setSort] = useState<SortKey>('score');
+  const { getClaim, effectiveStylist } = useClaims();
 
   function togglePicked(name: string) {
     setPicked((prev) => (prev.includes(name) ? prev.filter((x) => x !== name) : prev.concat(name)));
@@ -43,7 +45,7 @@ export function StylistDirectory() {
   // pagination, and "Newest" sorts by a real created-at field instead of
   // standing in with verified count.
   const results = useMemo(() => {
-    const matches = STYLISTS.filter((st) => {
+    const matches = STYLISTS.map(effectiveStylist).filter((st) => {
       const chairOk = chair === 'either' || st.chair === chair;
       const svOk = picked.length === 0 || picked.some((p) => st.services.includes(p));
       return chairOk && svOk;
@@ -56,7 +58,7 @@ export function StylistDirectory() {
     });
 
     return sorted.map(shape);
-  }, [chair, picked, sort]);
+  }, [chair, picked, sort, effectiveStylist]);
 
   const recCount = Math.min(3, results.length);
   const recs = results.slice(0, recCount).map((r) => ({ ...r, verifiedLabel: `${r.verified} verified` }));
@@ -174,33 +176,57 @@ export function StylistDirectory() {
         </div>
 
         <div className={styles.results}>
-          {results.map((st) => (
-            <div className={styles.row} key={st.id}>
-              <div>
-                <div className={styles.area}>{st.area}</div>
-                <div className={styles.name}>{st.name}</div>
-                <div className={styles.specialty}>{st.specialty}</div>
-                <div className={styles.quote}>
-                  <em>{st.quote}</em>
+          {results.map((st) => {
+            const claim = getClaim(st.id);
+            return (
+              <div className={styles.row} key={st.id}>
+                <div>
+                  <div className={styles.area}>
+                    {st.area}
+                    {claim.status === 'claimed' && (
+                      <span className={`tag tag-neutral ${styles.claimedTag}`}>Claimed by her</span>
+                    )}
+                  </div>
+                  <div className={styles.name}>{st.name}</div>
+                  <div className={styles.specialty}>{st.specialty}</div>
+                  <div className={styles.quote}>
+                    <em>{st.quote}</em>
+                  </div>
+                  {claim.reply && (
+                    <div className={styles.reply}>
+                      <span className={styles.replyLabel}>{st.name.split(' ')[0]} replied</span> {claim.reply}
+                    </div>
+                  )}
+                  <div className={styles.tags}>
+                    {st.tags.map((t) => (
+                      <span className="tag tag-outline" key={t}>
+                        {t}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className={styles.tags}>
-                  {st.tags.map((t) => (
-                    <span className="tag tag-outline" key={t}>
-                      {t}
-                    </span>
-                  ))}
+                <div className={styles.rowRight}>
+                  <div className={styles.rowScore}>{st.scoreLabel}</div>
+                  <div className={styles.rowMeta}>{st.verifiedLabel}</div>
+                  <div className={styles.rowMeta}>{st.price}</div>
+                  <Link to={`/review?stylist=${st.id}`} className={`btn btn-secondary ${styles.rateBtn}`}>
+                    Rate her
+                  </Link>
+                  {claim.status === 'unclaimed' && (
+                    <Link to={`/claim/${st.id}`} className={`btn btn-ghost ${styles.claimLink}`}>
+                      Is this you?
+                    </Link>
+                  )}
+                  {claim.status === 'pending' && <span className={styles.claimPending}>Claim pending</span>}
+                  {claim.status === 'claimed' && (
+                    <Link to={`/claim/${st.id}`} className={`btn btn-ghost ${styles.claimLink}`}>
+                      Manage profile
+                    </Link>
+                  )}
                 </div>
               </div>
-              <div className={styles.rowRight}>
-                <div className={styles.rowScore}>{st.scoreLabel}</div>
-                <div className={styles.rowMeta}>{st.verifiedLabel}</div>
-                <div className={styles.rowMeta}>{st.price}</div>
-                <Link to={`/review?stylist=${st.id}`} className={`btn btn-secondary ${styles.rateBtn}`}>
-                  Rate her
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {isEmpty && (

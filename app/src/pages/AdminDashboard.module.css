@@ -1,0 +1,122 @@
+.page {
+  min-height: 100vh;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  font-family: var(--font-body);
+}
+
+.wrap {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.hero {
+  margin-top: var(--space-8);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.h1 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.tabs {
+  margin-top: var(--space-6);
+  display: flex;
+  gap: var(--space-4);
+  font-size: 13px;
+}
+
+.tab {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-neutral-700);
+}
+
+.tab[data-active] {
+  color: var(--color-accent-700);
+  text-decoration: underline;
+}
+
+.empty {
+  margin-top: var(--space-6);
+  font-size: 15px;
+  color: var(--color-neutral-700);
+}
+
+.list {
+  margin-top: var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.row {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4) var(--space-6);
+  align-items: start;
+}
+
+.area {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+
+.name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 21px;
+  margin-top: 4px;
+}
+
+.meta {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: var(--space-2);
+  color: var(--color-neutral-800);
+}
+
+.metaLabel {
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+.note {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-top: var(--space-2);
+  max-width: 56ch;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-accent-2);
+}
+
+.timestamp {
+  font-size: 12px;
+  color: var(--color-neutral-700);
+  margin-top: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.statusTag {
+  white-space: nowrap;
+}
