@@ -1,0 +1,10 @@
+{
+  "name": "her-crown",
+  "private": true,
+  "description": "Root convenience scripts for deploying app/ (frontend) and server/ (API) together as one service.",
+  "scripts": {
+    "build": "npm install --prefix app && npm run build --prefix app && npm install --prefix server && npm run build --prefix server",
+    "start": "node server/dist/index.js",
+    "seed:admin": "npm run seed:admin --prefix server"
+  }
+}

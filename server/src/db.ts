@@ -4,7 +4,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(here, '..', 'data');
+// DATA_DIR lets a host mount a persistent disk somewhere of its choosing
+// (e.g. Render) instead of the project's own folder, which doesn't survive
+// redeploys.
+const dataDir = process.env.DATA_DIR ?? join(here, '..', 'data');
 mkdirSync(dataDir, { recursive: true });
 
 export const db = new Database(join(dataDir, 'her-crown.sqlite'));
