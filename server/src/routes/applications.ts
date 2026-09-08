@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { hashPassword } from '../auth.js';
+import { notifyNewApplication } from '../email.js';
 
 export const applicationsRouter = Router();
 
@@ -48,20 +49,35 @@ applicationsRouter.post('/', (req, res) => {
     return;
   }
 
+  const trimmedName = name.trim();
+  const trimmedArea = area.trim();
+  const trimmedSpecialty = specialty.trim();
+  const trimmedNote = typeof note === 'string' ? note.trim() || null : null;
+
   db.prepare(
     `INSERT INTO applications (status, name, area, chair, specialty, price, services, email, password_hash, note)
      VALUES ('pending', @name, @area, @chair, @specialty, @price, @services, @email, @passwordHash, @note)`,
   ).run({
-    name: name.trim(),
-    area: area.trim(),
+    name: trimmedName,
+    area: trimmedArea,
     chair,
-    specialty: specialty.trim(),
+    specialty: trimmedSpecialty,
     price: typeof price === 'string' ? price.trim() || null : null,
     services: JSON.stringify(services),
     email: normalizedEmail,
     passwordHash: hashPassword(password),
-    note: typeof note === 'string' ? note.trim() || null : null,
+    note: trimmedNote,
   });
 
   res.status(201).json({ status: 'pending' });
+
+  // Fire-and-forget: the application is already saved, so a slow or failed
+  // notification shouldn't hold up the applicant's response.
+  notifyNewApplication({
+    name: trimmedName,
+    area: trimmedArea,
+    specialty: trimmedSpecialty,
+    email: normalizedEmail,
+    note: trimmedNote,
+  });
 });
