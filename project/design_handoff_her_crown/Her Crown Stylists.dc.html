@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/broadsheet-61881aa4-ca3c-45b7-a0eb-857f8d3c5136/styles.css">
+<script src="_ds/broadsheet-61881aa4-ca3c-45b7-a0eb-857f8d3c5136/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); }
+  a { color: var(--color-accent-700); text-decoration: none; }
+  a:hover { color: var(--color-accent-600); text-decoration: underline; }
+</style>
+</helmet>
+<div style="min-height: 100vh; padding: var(--space-6) var(--space-4) var(--space-8); font-family: var(--font-body);">
+  <div style="max-width: 940px; margin: 0 auto;">
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+      <div style="font-family: var(--font-heading); font-weight: 600; font-size: 30px; letter-spacing: -0.015em;">Her&nbsp;Crown</div>
+      <div style="display: flex; align-items: baseline; gap: var(--space-4); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">
+        <span>The directory</span>
+        <a href="Her Crown Review.dc.html">Rate a stylist</a>
+      </div>
+    </div>
+    <div style="border-top: 3px solid var(--color-text); margin-top: var(--space-2);"></div>
+    <div style="border-top: 1px solid var(--color-text); margin-top: 3px;"></div>
+
+    <div style="margin-top: var(--space-8);">
+      <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 46px; line-height: 1.05; letter-spacing: -0.02em; margin: 0; max-width: 20ch; text-wrap: pretty;">Find hands you can trust.</h1>
+      <p style="font-size: 17px; line-height: 1.55; max-width: 58ch; margin: var(--space-3) 0 0; color: var(--color-neutral-800);">Every score here comes from a woman with a receipt. Tell us what you need and where you are — we'll put the right chairs in front of you.</p>
+    </div>
+
+    <div style="margin-top: var(--space-8); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4);">
+      <div class="field">
+        <label for="hc-where">Where you are</label>
+        <input class="input" id="hc-where" placeholder="Neighborhood or ZIP" value="{{ where }}" onChange="{{ onWhere }}">
+      </div>
+      <div class="field">
+        <label id="hc-travel-label">Chair</label>
+        <div class="seg" role="radiogroup" aria-labelledby="hc-travel-label">
+          <sc-for list="{{ chairOpts }}" as="c" hint-placeholder-count="3">
+            <label class="seg-opt"><input type="radio" name="hc-chair" checked="{{ c.on }}" onChange="{{ c.onPick }}">{{ c.label }}</label>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: var(--space-6);">
+      <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">What you need</div>
+      <div style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2);">
+        <sc-for list="{{ services }}" as="sv" hint-placeholder-count="8">
+          <div onClick="{{ sv.onToggle }}" role="button" tabIndex="0" style="cursor: pointer; padding: 8px 14px; font-size: 15px; border-radius: var(--radius-md); border: 1px solid {{ sv.border }}; background: {{ sv.bg }}; color: {{ sv.fg }};">{{ sv.name }}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{ showRecs }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top: var(--space-8);">
+        <div style="display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap;">
+          <h2 style="font-family: var(--font-heading); font-weight: 600; font-size: 26px; letter-spacing: -0.01em; margin: 0;">Picked for you</h2>
+          <span style="font-size: 13px; color: var(--color-neutral-700);">{{ recReason }}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-3); margin-top: var(--space-4);">
+          <sc-for list="{{ recs }}" as="r" hint-placeholder-count="3">
+            <div class="card" style="display: grid; gap: var(--space-2); align-content: start;">
+              <div class="card-kicker">{{ r.why }}</div>
+              <div class="card-title" style="font-size: 21px;">{{ r.name }}</div>
+              <div class="card-body">{{ r.specialty }}</div>
+              <div style="display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-1);">
+                <span style="font-family: var(--font-heading); font-size: 19px; font-variant-numeric: tabular-nums;">{{ r.score }}</span>
+                <span class="tag tag-accent" style="white-space: nowrap;">{{ r.verifiedLabel }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="margin-top: var(--space-8); display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+      <h2 style="font-family: var(--font-heading); font-weight: 600; font-size: 26px; letter-spacing: -0.01em; margin: 0;">{{ resultsHeading }}</h2>
+      <div style="display: flex; align-items: baseline; gap: var(--space-3); font-size: 13px;">
+        <span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">Sort</span>
+        <sc-for list="{{ sorts }}" as="so" hint-placeholder-count="3">
+          <div onClick="{{ so.onPick }}" role="button" tabIndex="0" style="cursor: pointer; color: {{ so.color }}; text-decoration: {{ so.deco }};">{{ so.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-top: var(--space-4); display: grid; gap: var(--space-6);">
+      <sc-for list="{{ results }}" as="st" hint-placeholder-count="6">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4) var(--space-6); align-items: start; padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
+          <div>
+            <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">{{ st.area }}</div>
+            <div style="font-family: var(--font-heading); font-weight: 600; font-size: 27px; line-height: 1.15; margin-top: 4px;">{{ st.name }}</div>
+            <div style="font-size: 16px; line-height: 1.5; margin-top: 6px; max-width: 52ch;">{{ st.specialty }}</div>
+            <div style="font-size: 15px; line-height: 1.6; margin-top: var(--space-3); max-width: 56ch; padding-left: var(--space-3); border-left: 2px solid var(--color-accent-2);"><em>{{ st.quote }}</em></div>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3);">
+              <sc-for list="{{ st.tags }}" as="t" hint-placeholder-count="3">
+                <span class="tag tag-outline">{{ t }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: grid; gap: 6px; justify-items: end; text-align: right;">
+            <div style="font-family: var(--font-heading); font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums;">{{ st.score }}</div>
+            <div style="font-size: 12px; color: var(--color-neutral-700); white-space: nowrap;">{{ st.verifiedLabel }}</div>
+            <div style="font-size: 12px; color: var(--color-neutral-700); white-space: nowrap;">{{ st.price }}</div>
+            <a href="Her Crown Review.dc.html" class="btn btn-secondary" style="margin-top: var(--space-2); white-space: nowrap;">Rate her</a>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ isEmpty }}">
+      <div style="margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
+        <div style="font-family: var(--font-heading); font-size: 24px;">Nobody yet for that mix.</div>
+        <p style="font-size: 16px; line-height: 1.55; max-width: 50ch; margin: var(--space-2) 0 0; color: var(--color-neutral-800);">Drop a filter, or widen the chair. New stylists get added the week their first receipt clears.</p>
+        <button type="button" class="btn btn-ghost" style="margin-top: var(--space-2);" onClick="{{ onClear }}">Clear filters</button>
+      </div>
+    </sc-if>
+
+    <div style="margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--color-divider); font-size: 13px; line-height: 1.6; color: var(--color-neutral-700); max-width: 60ch;">
+      Scores are the average of verified visits only. A stylist can reply to any review once, and nobody can pay to move up this page.
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;spotColor&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cyan&quot;,&quot;Magenta&quot;],&quot;default&quot;:&quot;Cyan&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Style&quot;},&quot;showRecommended&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Directory&quot;}}">
+const SERVICES = ['Knotless braids', 'Boho braids', 'Locs / retwist', 'Silk press', 'Natural cut', 'Color', 'Wash-and-go', 'Wig install', 'Kid-friendly'];
+
+const CHAIRS = [
+  { key: 'either', label: 'Either' },
+  { key: 'travels', label: 'Travels to you' },
+  { key: 'salon', label: 'Salon or studio' },
+];
+
+const STYLISTS = [
+  { name: 'Tayo Fields', area: 'Old Fourth Ward', chair: 'salon', score: 4.8, verified: 210, price: '$95–$180',
+    specialty: 'Locs, retwist and scalp health. Fifteen years, one chair, no rush.',
+    services: ['Locs / retwist', 'Natural cut'], tags: ['Scalp-first', 'Books 3 weeks out', 'Replies to reviews'],
+    quote: 'She talked me out of the style I wanted and she was right. My hairline is thanking her.' },
+  { name: 'Nailah Bryce', area: 'West End · travels to you', chair: 'travels', score: 4.9, verified: 128, price: '$180–$320',
+    specialty: 'Knotless and boho braids, kid-friendly, comes to your kitchen.',
+    services: ['Knotless braids', 'Boho braids', 'Kid-friendly'], tags: ['Gentle tension', 'On time', 'Kids welcome'],
+    quote: 'Six hours and my scalp never once stung. She braided my daughter after me for half price.' },
+  { name: 'Simone Achebe', area: 'Decatur · home studio', chair: 'salon', score: 4.7, verified: 84, price: '$85–$140',
+    specialty: 'Silk press, trims and heat-damage repair. Will tell you the truth about your ends.',
+    services: ['Silk press', 'Natural cut'], tags: ['Honest trims', 'Low heat', 'Detailed consult'],
+    quote: 'She cut two inches I did not want to lose and my curls came back for it.' },
+  { name: 'Renée Okonjo', area: 'East Point · travels to you', chair: 'travels', score: 4.5, verified: 41, price: '$70–$210',
+    specialty: 'Natural cuts, color and wash-and-go shaping for looser to tighter coils.',
+    services: ['Natural cut', 'Color', 'Wash-and-go'], tags: ['Color-safe', 'Newer to the app', 'Weekend slots'],
+    quote: 'The shape grew out beautifully. Color took two visits, which she said up front.' },
+  { name: 'Adaeze Hill', area: 'Kirkwood', chair: 'salon', score: 4.6, verified: 67, price: '$150–$260',
+    specialty: 'Wig installs and lace work, plus braid takedowns that keep your length.',
+    services: ['Wig install', 'Knotless braids'], tags: ['Melted lace', 'Takedowns', 'Studio parking'],
+    quote: 'Flat install, no glue on my skin, and she washed my own hair underneath first.' },
+  { name: 'Jolie Marchand', area: 'College Park · travels to you', chair: 'travels', score: 4.4, verified: 33, price: '$200–$380',
+    specialty: 'Boho braids and long-term protective sets. Brings her own chair and lighting.',
+    services: ['Boho braids', 'Knotless braids'], tags: ['Long sets', 'Late appointments', 'Cash or Zelle'],
+    quote: 'Started an hour late but stayed until 11pm to finish clean. Curls still bouncing at week five.' },
+];
+
+const SORTS = [
+  { key: 'score', label: 'Highest rated' },
+  { key: 'verified', label: 'Most reviewed' },
+  { key: 'new', label: 'Newest' },
+];
+
+class Component extends DCLogic {
+  state = { where: 'Atlanta, GA', chair: 'either', picked: ['Knotless braids'], sort: 'score' };
+
+  renderVals() {
+    const s = this.state;
+    const spot = (this.props.spotColor ?? 'Cyan') === 'Magenta'
+      ? 'var(--color-accent-2-700)' : 'var(--color-accent-700)';
+
+    const services = SERVICES.map(name => {
+      const on = s.picked.includes(name);
+      return {
+        name,
+        bg: on ? 'var(--color-accent-100)' : 'transparent',
+        fg: on ? 'var(--color-accent-800)' : 'var(--color-text)',
+        border: on ? 'var(--color-accent)' : 'var(--color-divider)',
+        onToggle: () => this.setState({ picked: on ? s.picked.filter(x => x !== name) : s.picked.concat(name) }),
+      };
+    });
+
+    const matches = STYLISTS.filter(st => {
+      const chairOk = s.chair === 'either' || st.chair === s.chair;
+      const svOk = s.picked.length === 0 || s.picked.some(p => st.services.includes(p));
+      return chairOk && svOk;
+    });
+
+    const sorted = matches.slice().sort((a, b) => {
+      if (s.sort === 'verified') return b.verified - a.verified;
+      if (s.sort === 'new') return a.verified - b.verified;
+      return b.score - a.score;
+    });
+
+    const shape = st => ({
+      ...st,
+      score: st.score.toFixed(1),
+      verifiedLabel: st.verified + ' verified reviews',
+      why: st.chair === 'travels' ? 'Travels to you' : 'Near ' + st.area.split(' ·')[0],
+    });
+
+    const results = sorted.map(shape);
+    const recCount = Math.min(3, results.length);
+
+    return {
+      services,
+      where: s.where,
+      onWhere: e => this.setState({ where: e.target.value }),
+      chairOpts: CHAIRS.map(c => ({
+        label: c.label, on: s.chair === c.key,
+        onPick: () => this.setState({ chair: c.key }),
+      })),
+      sorts: SORTS.map(so => ({
+        label: so.label,
+        color: s.sort === so.key ? spot : 'var(--color-neutral-700)',
+        deco: s.sort === so.key ? 'underline' : 'none',
+        onPick: () => this.setState({ sort: so.key }),
+      })),
+      showRecs: (this.props.showRecommended ?? true) && recCount > 0,
+      recs: sorted.slice(0, recCount).map(st => {
+        const r = shape(st);
+        r.verifiedLabel = st.verified + ' verified';
+        return r;
+      }),
+      recReason: (s.picked.length ? s.picked.join(', ').toLowerCase() : 'all services') + ' · ' + (s.where || 'anywhere'),
+      results,
+      resultsHeading: results.length
+        ? results.length + (results.length === 1 ? ' stylist' : ' stylists') + ' in ' + (s.where || 'range')
+        : 'No matches',
+      isEmpty: results.length === 0,
+      onClear: () => this.setState({ picked: [], chair: 'either' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

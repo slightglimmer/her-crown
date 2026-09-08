@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/broadsheet-61881aa4-ca3c-45b7-a0eb-857f8d3c5136/styles.css">
+<script src="_ds/broadsheet-61881aa4-ca3c-45b7-a0eb-857f8d3c5136/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); }
+</style>
+</helmet>
+<div style="min-height: 100vh; padding: var(--space-6) var(--space-4) var(--space-8); font-family: var(--font-body);">
+  <div style="max-width: 800px; margin: 0 auto;">
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+      <div style="font-family: var(--font-heading); font-weight: 600; font-size: 30px; letter-spacing: -0.015em;">Her&nbsp;Crown</div>
+      <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">Rate your stylist · Atlanta, GA</div>
+    </div>
+    <div style="border-top: 3px solid var(--color-text); margin-top: var(--space-2);"></div>
+    <div style="border-top: 1px solid var(--color-text); margin-top: 3px;"></div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin-top: var(--space-3); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;">
+      <sc-for list="{{ rail }}" as="s" hint-placeholder-count="6">
+        <div style="display: flex; align-items: baseline; gap: 6px; color: {{ s.color }};">
+          <span style="font-variant-numeric: tabular-nums;">{{ s.n }}</span>
+          <span>{{ s.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ isPick }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top: var(--space-8);">
+        <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 44px; line-height: 1.08; letter-spacing: -0.02em; margin: 0; max-width: 22ch; text-wrap: pretty;">Who had their hands in your hair?</h1>
+        <p style="font-size: 17px; line-height: 1.55; max-width: 56ch; margin: var(--space-3) 0 0; opacity: 0.75;">Pick the chair you sat in. We only take reviews from people who actually sat down — receipt and all.</p>
+        <div style="margin-top: var(--space-6); display: grid; gap: var(--space-3);">
+          <sc-for list="{{ stylists }}" as="st" hint-placeholder-count="4">
+            <div class="card" onClick="{{ st.onPick }}" tabIndex="0" role="button" style="cursor: pointer; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-4); border-color: {{ st.border }};">
+              <div>
+                <div class="card-kicker">{{ st.area }}</div>
+                <div class="card-title" style="font-size: 21px;">{{ st.name }}</div>
+                <div class="card-body" style="margin-top: 4px;">{{ st.specialty }}</div>
+              </div>
+              <div style="text-align: right; display: grid; gap: 6px; justify-items: end;">
+                <div style="font-family: var(--font-heading); font-size: 22px; font-variant-numeric: tabular-nums;">{{ st.score }}</div>
+                <div class="tag tag-accent" style="white-space: nowrap;">{{ st.verifiedLabel }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isVerify }}">
+      <div style="margin-top: var(--space-8);">
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">Step two · proof of chair</div>
+        <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: var(--space-2) 0 0; max-width: 24ch;">Show us the receipt.</h1>
+        <p style="font-size: 17px; line-height: 1.55; max-width: 58ch; margin: var(--space-3) 0 0; opacity: 0.75;">A payment screenshot, a Zelle confirmation, a booking email — anything with the date and the amount. We check it, we never publish it.</p>
+        <div onClick="{{ onUpload }}" role="button" tabIndex="0" style="margin-top: var(--space-6); cursor: pointer; padding: var(--space-8) var(--space-4); text-align: center; border: 1.5px dashed var(--color-neutral-400); border-radius: var(--radius-md); background: var(--color-neutral-100);">
+          <div style="font-family: var(--font-heading); font-size: 20px;">{{ receiptTitle }}</div>
+          <div style="font-size: 14px; opacity: 0.7; margin-top: 6px;">{{ receiptNote }}</div>
+        </div>
+        <p style="font-size: 13px; line-height: 1.5; max-width: 58ch; margin: var(--space-3) 0 0; color: var(--color-neutral-700);">Receipts are reviewed by a person, not a bot. Your review posts with a verified badge once it clears — usually within a day.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isRate }}">
+      <div style="margin-top: var(--space-8);">
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">Step three · the score</div>
+        <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: var(--space-2) 0 0; max-width: 24ch;">How did you walk out feeling?</h1>
+        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-6);">
+          <sc-for list="{{ stars }}" as="star" hint-placeholder-count="5">
+            <div onClick="{{ star.onPick }}" onMouseEnter="{{ star.onEnter }}" onMouseLeave="{{ onStarLeave }}" role="button" tabIndex="0" aria-label="{{ star.aria }}" style="cursor: pointer; width: 48px; height: 48px; display: grid; place-items: center; font-size: 40px; line-height: 1; color: {{ star.color }};">★</div>
+          </sc-for>
+        </div>
+        <div style="font-family: var(--font-heading); font-size: 26px; margin-top: var(--space-4); min-height: 34px;">{{ ratingLabel }}</div>
+        <p style="font-size: 15px; line-height: 1.55; max-width: 54ch; margin: var(--space-2) 0 0; color: var(--color-neutral-700);">{{ ratingHint }}</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isService }}">
+      <div style="margin-top: var(--space-8);">
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">Step four · the service</div>
+        <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: var(--space-2) 0 0; max-width: 24ch;">What did you sit down for?</h1>
+        <p style="font-size: 17px; line-height: 1.55; max-width: 56ch; margin: var(--space-3) 0 0; opacity: 0.75;">Pick everything that happened in the chair. This is what makes your review findable for the next woman searching.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-6);">
+          <sc-for list="{{ services }}" as="sv" hint-placeholder-count="9">
+            <div onClick="{{ sv.onToggle }}" role="button" tabIndex="0" style="cursor: pointer; padding: 8px 14px; font-size: 15px; border-radius: var(--radius-md); border: 1px solid {{ sv.border }}; background: {{ sv.bg }}; color: {{ sv.fg }};">{{ sv.name }}</div>
+          </sc-for>
+        </div>
+        <div class="field" style="margin-top: var(--space-6); max-width: 320px;">
+          <label for="hc-paid">What you paid, all in</label>
+          <input class="input" id="hc-paid" placeholder="$220" value="{{ paid }}" onChange="{{ onPaid }}">
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isPhotos }}">
+      <div style="margin-top: var(--space-8);">
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">Step five · the evidence</div>
+        <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: var(--space-2) 0 0; max-width: 24ch;">Let us see it.</h1>
+        <p style="font-size: 17px; line-height: 1.55; max-width: 56ch; margin: var(--space-3) 0 0; opacity: 0.75;">Day one, day fourteen, and the part nobody photographs. Optional — but photos are why people trust this place.</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); margin-top: var(--space-6);">
+          <sc-for list="{{ photoSlots }}" as="p" hint-placeholder-count="3">
+            <div onClick="{{ p.onAdd }}" role="button" tabIndex="0" style="cursor: pointer; aspect-ratio: 4 / 5; display: grid; place-content: center; gap: 6px; text-align: center; padding: var(--space-3); border: 1.5px dashed {{ p.border }}; border-radius: var(--radius-md); background: {{ p.bg }};">
+              <div style="font-family: var(--font-heading); font-size: 18px;">{{ p.title }}</div>
+              <div style="font-size: 13px; color: var(--color-neutral-700);">{{ p.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isWrite }}">
+      <div style="margin-top: var(--space-8);">
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-700);">Step six · the write-up</div>
+        <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: var(--space-2) 0 0; max-width: 26ch;">Say the useful part.</h1>
+        <p style="font-size: 17px; line-height: 1.55; max-width: 58ch; margin: var(--space-3) 0 0; opacity: 0.75;">Three questions instead of a blank box. Specifics help a stylist grow and help a stranger book with her eyes open.</p>
+        <div style="display: grid; gap: var(--space-6); margin-top: var(--space-6);">
+          <sc-for list="{{ prompts }}" as="q" hint-placeholder-count="3">
+            <div>
+              <div style="font-family: var(--font-heading); font-size: 21px; line-height: 1.3; max-width: 46ch;">{{ q.title }}</div>
+              <div style="font-size: 13px; color: var(--color-neutral-700); margin: 6px 0 var(--space-2);">{{ q.help }}</div>
+              <textarea class="input" rows="3" placeholder="{{ q.placeholder }}" value="{{ q.value }}" onChange="{{ q.onChange }}"></textarea>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: var(--space-6); font-size: 14px; line-height: 1.6; max-width: 58ch; padding-left: var(--space-3); border-left: 2px solid var(--color-accent-2);">
+          <em>House rule:</em> critique the work, the timing and the price — not her body, her shop or her personal life. Reviews that read as venting get sent back to you for a rewrite, not deleted.
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isDone }}">
+      <div style="margin-top: var(--space-8);">
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-2-700);">Filed</div>
+        <h1 style="font-family: var(--font-heading); font-weight: 600; font-size: 46px; line-height: 1.08; letter-spacing: -0.02em; margin: var(--space-2) 0 0; max-width: 22ch;">{{ doneHeadline }}</h1>
+        <p style="font-size: 17px; line-height: 1.6; max-width: 58ch; margin: var(--space-4) 0 0;">We're checking your receipt now. Once it clears, your review posts with a verified badge and your photos sit at the top of {{ stylistFirstName }}'s page.</p>
+        <div style="display: grid; gap: var(--space-2); margin-top: var(--space-6); font-size: 15px;">
+          <div style="display: flex; gap: var(--space-3);"><span style="width: 90px; flex: none; color: var(--color-neutral-700); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;">Stylist</span><span>{{ stylistName }}</span></div>
+          <div style="display: flex; gap: var(--space-3);"><span style="width: 90px; flex: none; color: var(--color-neutral-700); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;">Score</span><span>{{ ratingOutOf }}</span></div>
+          <div style="display: flex; gap: var(--space-3);"><span style="width: 90px; flex: none; color: var(--color-neutral-700); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;">Service</span><span>{{ serviceSummary }}</span></div>
+          <div style="display: flex; gap: var(--space-3);"><span style="width: 90px; flex: none; color: var(--color-neutral-700); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;">Photos</span><span>{{ photoSummary }}</span></div>
+        </div>
+        <button type="button" class="btn btn-secondary" style="margin-top: var(--space-8);" onClick="{{ onRestart }}">Write another one</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showFooterNav }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
+        <button type="button" class="btn btn-ghost" onClick="{{ onBack }}" disabled="{{ backDisabled }}">← Back</button>
+        <div style="display: flex; align-items: center; gap: var(--space-3);">
+          <span style="font-size: 13px; color: var(--color-neutral-700);">{{ gateNote }}</span>
+          <button type="button" class="btn btn-primary" onClick="{{ onNext }}" disabled="{{ nextDisabled }}">{{ nextLabel }}</button>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;spotColor&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Magenta&quot;,&quot;Cyan&quot;],&quot;default&quot;:&quot;Magenta&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Style&quot;},&quot;guidedPrompts&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Review flow&quot;},&quot;minWords&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:25,&quot;min&quot;:0,&quot;max&quot;:150,&quot;step&quot;:5,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Review flow&quot;}}">
+const STEPS = [
+  { n: '01', label: 'Stylist' },
+  { n: '02', label: 'Verify' },
+  { n: '03', label: 'Rating' },
+  { n: '04', label: 'Service' },
+  { n: '05', label: 'Photos' },
+  { n: '06', label: 'Write-up' },
+];
+
+const STYLISTS = [
+  { name: 'Nailah Bryce', area: 'West End · travels to you', specialty: 'Knotless braids, boho, kid-friendly', score: '4.9', verified: 128 },
+  { name: 'Simone Achebe', area: 'Decatur · home studio', specialty: 'Silk press, trims, heat-damage repair', score: '4.7', verified: 84 },
+  { name: 'Tayo Fields', area: 'Old Fourth Ward · salon chair', specialty: 'Locs, retwist, scalp health', score: '4.8', verified: 210 },
+  { name: 'Renée Okonjo', area: 'East Point · travels to you', specialty: 'Natural cuts, color, wash-and-go shaping', score: '4.5', verified: 41 },
+];
+
+const SERVICES = ['Knotless braids', 'Boho braids', 'Locs / retwist', 'Silk press', 'Natural cut', 'Color', 'Wash-and-go', 'Trim', 'Wig install'];
+
+const RATING_COPY = [
+  ['Rough day in the chair', 'Say what went wrong plainly. She can only fix what she can hear.'],
+  ['Not what you asked for', 'Was it the style, the timing, or the price? Pick the one that mattered most.'],
+  ['Fine, not memorable', 'The middle scores are the most useful ones. Be specific about the gap.'],
+  ['Solid. You would go back', 'Tell us the one thing that would have made it a five.'],
+  ['Laid. Absolutely laid', 'Now tell everybody why so she gets booked all month.'],
+];
+
+const PROMPT_DEFS = [
+  { key: 'a', title: 'What did you ask for, and what did you leave with?', help: 'Reference photo versus real result.', placeholder: 'I brought a photo of medium knotless to the waist…' },
+  { key: 'b', title: 'How was the process — time, tension, communication?', help: 'Start time, finish time, how your scalp felt that night.', placeholder: 'Booked for 9, started at 9:20, out by 3…' },
+  { key: 'c', title: 'One thing another woman should know before booking.', help: 'The detail you wish someone had told you.', placeholder: 'Come with your hair already blown out or it adds an hour…' },
+];
+
+class Component extends DCLogic {
+  state = {
+    step: 0, stylist: null, receipt: false, rating: 0, hover: 0,
+    services: [], paid: '', photos: [], answers: { a: '', b: '', c: '' },
+  };
+
+  set(patch) { this.setState(patch); }
+
+  renderVals() {
+    const s = this.state;
+    const spot = (this.props.spotColor ?? 'Magenta') === 'Cyan'
+      ? 'var(--color-accent-700)' : 'var(--color-accent-2-700)';
+    const guided = this.props.guidedPrompts ?? true;
+    const last = 5;
+
+    const rail = STEPS.map((st, i) => ({
+      n: st.n, label: st.label,
+      color: i === s.step ? spot : (i < s.step || s.step > last ? 'var(--color-text)' : 'var(--color-neutral-500)'),
+    }));
+
+    const stylists = STYLISTS.map((st, i) => ({
+      ...st, verifiedLabel: st.verified + ' verified',
+      border: s.stylist === i ? 'var(--color-accent)' : 'var(--color-divider)',
+      onPick: () => this.set({ stylist: i, step: 1 }),
+    }));
+
+    const shown = s.hover || s.rating;
+    const stars = [1, 2, 3, 4, 5].map(n => ({
+      aria: n + ' out of 5',
+      color: n <= shown ? 'var(--color-accent-2)' : 'var(--color-neutral-300)',
+      onPick: () => this.set({ rating: n }),
+      onEnter: () => this.set({ hover: n }),
+    }));
+
+    const services = SERVICES.map(name => {
+      const sel = s.services.includes(name);
+      return {
+        name, sel,
+        bg: sel ? 'var(--color-accent-100)' : 'transparent',
+        fg: sel ? 'var(--color-accent-800)' : 'var(--color-text)',
+        border: sel ? 'var(--color-accent)' : 'var(--color-divider)',
+        onToggle: () => this.set({
+          services: sel ? s.services.filter(x => x !== name) : s.services.concat(name),
+        }),
+      };
+    });
+
+    const slotDefs = [
+      { title: 'Day one', note: 'Fresh out of the chair' },
+      { title: 'Two weeks in', note: 'How it held up' },
+      { title: 'The parts', note: 'Close-up of the scalp' },
+    ];
+    const photoSlots = slotDefs.map((d, i) => {
+      const on = s.photos.includes(i);
+      return {
+        title: on ? 'Added ✓' : d.title,
+        note: on ? d.title.toLowerCase() + ' · tap to remove' : d.note,
+        bg: on ? 'var(--color-accent-100)' : 'var(--color-neutral-100)',
+        border: on ? 'var(--color-accent)' : 'var(--color-neutral-400)',
+        onAdd: () => this.set({ photos: on ? s.photos.filter(x => x !== i) : s.photos.concat(i) }),
+      };
+    });
+
+    const defs = guided ? PROMPT_DEFS : [{ key: 'a', title: 'Tell us how it went.', help: 'Be specific — what you asked for, how the chair time felt, what you paid.', placeholder: 'Write your review…' }];
+    const prompts = defs.map(d => ({
+      title: d.title, help: d.help, placeholder: d.placeholder,
+      value: s.answers[d.key],
+      onChange: e => this.set({ answers: { ...s.answers, [d.key]: e.target.value } }),
+    }));
+
+    const words = Object.values(s.answers).join(' ').trim().split(/\s+/).filter(Boolean).length;
+    const minWords = this.props.minWords ?? 25;
+
+    const gates = [
+      s.stylist !== null,
+      s.receipt,
+      s.rating > 0,
+      s.services.length > 0,
+      true,
+      words >= minWords,
+    ];
+    const notes = [
+      '', s.receipt ? '' : 'Receipt needed',
+      s.rating ? '' : 'Pick a score',
+      s.services.length ? '' : 'Pick at least one',
+      s.photos.length ? s.photos.length + ' added' : 'Optional',
+      words >= minWords ? words + ' words' : (minWords - words) + ' more words',
+    ];
+
+    const st = s.stylist === null ? null : STYLISTS[s.stylist];
+
+    return {
+      rail, stylists, stars, services, photoSlots, prompts,
+      isPick: s.step === 0, isVerify: s.step === 1, isRate: s.step === 2,
+      isService: s.step === 3, isPhotos: s.step === 4, isWrite: s.step === 5,
+      isDone: s.step === 6,
+      showFooterNav: s.step > 0 && s.step <= last,
+      paid: s.paid,
+      onPaid: e => this.set({ paid: e.target.value }),
+      onStarLeave: () => this.set({ hover: 0 }),
+      onUpload: () => this.set({ receipt: !s.receipt }),
+      receiptTitle: s.receipt ? 'receipt-0824.jpg ✓' : 'Drop your receipt here',
+      receiptNote: s.receipt
+        ? 'Date and amount match a booking on Aug 24 — tap to replace'
+        : 'JPG, PNG or a screenshot. Nothing else on the image is stored.',
+      ratingLabel: shown ? RATING_COPY[shown - 1][0] : 'Tap a star',
+      ratingHint: shown ? RATING_COPY[shown - 1][1] : 'Five stars means you would hand her your daughter\u2019s hair.',
+      onBack: () => this.set({ step: Math.max(0, s.step - 1), hover: 0 }),
+      onNext: () => this.set({ step: s.step + 1, hover: 0 }),
+      onRestart: () => this.setState({ step: 0, stylist: null, receipt: false, rating: 0, hover: 0, services: [], paid: '', photos: [], answers: { a: '', b: '', c: '' } }),
+      backDisabled: s.step <= 1,
+      nextDisabled: !gates[s.step],
+      nextLabel: s.step === last ? 'File the review' : 'Continue',
+      gateNote: notes[s.step] || '',
+      doneHeadline: s.rating >= 4 ? 'Somebody\u2019s about to get booked.' : 'Thank you for the honest one.',
+      stylistName: st ? st.name : '—',
+      stylistFirstName: st ? st.name.split(' ')[0] : 'her',
+      ratingOutOf: s.rating + ' out of 5',
+      serviceSummary: s.services.length ? s.services.join(', ') + (s.paid ? ' · ' + s.paid : '') : '—',
+      photoSummary: s.photos.length ? s.photos.length + ' attached' : 'None',
+    };
+  }
+}
+</script>
+</body>
+</html>
