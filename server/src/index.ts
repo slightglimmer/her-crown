@@ -4,13 +4,14 @@ import express from 'express';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import './db.js';
+import { initSchema } from './db.js';
 import { ensureAdminSeeded } from './ensureAdmin.js';
 import { applicationsRouter } from './routes/applications.js';
 import { stylistsRouter } from './routes/stylists.js';
 import { adminRouter } from './routes/admin.js';
 
-ensureAdminSeeded();
+await initSchema();
+await ensureAdminSeeded();
 
 const app = express();
 const port = Number(process.env.PORT ?? 4787);

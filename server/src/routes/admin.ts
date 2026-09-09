@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { query, queryOne, withTransaction } from '../db.js';
 import { signToken, verifyPassword, requireAdmin, type AuthedRequest } from '../auth.js';
 import { uniqueSlug } from '../slug.js';
 
@@ -57,16 +57,14 @@ const APPLICATION_SELECT = `
   LEFT JOIN stylists s ON s.id = a.stylist_id
 `;
 
-adminRouter.post('/login', (req, res) => {
+adminRouter.post('/login', async (req, res) => {
   const { email, password } = req.body ?? {};
   if (typeof email !== 'string' || typeof password !== 'string') {
     res.status(400).json({ error: 'email and password are required' });
     return;
   }
 
-  const user = db
-    .prepare('SELECT * FROM admin_users WHERE email = ?')
-    .get(email.trim().toLowerCase()) as AdminUserRow | undefined;
+  const user = await queryOne<AdminUserRow>('SELECT * FROM admin_users WHERE email = $1', [email.trim().toLowerCase()]);
 
   if (!user || !verifyPassword(password, user.password_hash)) {
     res.status(401).json({ error: 'Wrong email or password' });
@@ -79,19 +77,18 @@ adminRouter.post('/login', (req, res) => {
 
 adminRouter.use(requireAdmin);
 
-adminRouter.get('/applications', (req: AuthedRequest, res) => {
+adminRouter.get('/applications', async (req: AuthedRequest, res) => {
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
-  const rows = (
-    status
-      ? db.prepare(`${APPLICATION_SELECT} WHERE a.status = ? ORDER BY a.id DESC`).all(status)
-      : db.prepare(`${APPLICATION_SELECT} ORDER BY a.id DESC`).all()
-  ) as (ApplicationRow & { stylist_slug: string | null })[];
+  const rows = await query<ApplicationRow & { stylist_slug: string | null }>(
+    status ? `${APPLICATION_SELECT} WHERE a.status = $1 ORDER BY a.id DESC` : `${APPLICATION_SELECT} ORDER BY a.id DESC`,
+    status ? [status] : [],
+  );
   res.json(rows.map(toApiApplication));
 });
 
-adminRouter.post('/applications/:id/approve', (req: AuthedRequest, res) => {
+adminRouter.post('/applications/:id/approve', async (req: AuthedRequest, res) => {
   const id = Number(req.params.id);
-  const app = db.prepare('SELECT * FROM applications WHERE id = ?').get(id) as ApplicationRow | undefined;
+  const app = await queryOne<ApplicationRow>('SELECT * FROM applications WHERE id = $1', [id]);
   if (!app) {
     res.status(404).json({ error: 'Not found' });
     return;
@@ -101,65 +98,55 @@ adminRouter.post('/applications/:id/approve', (req: AuthedRequest, res) => {
     return;
   }
 
-  const slug = uniqueSlug(app.name);
+  const slug = await uniqueSlug(app.name);
 
-  const tx = db.transaction(() => {
-    const stylistInfo = db
-      .prepare(
-        `INSERT INTO stylists (slug, name, area, chair, specialty, price, services, email, password_hash)
-         VALUES (@slug, @name, @area, @chair, @specialty, @price, @services, @email, @passwordHash)`,
-      )
-      .run({
-        slug,
-        name: app.name,
-        area: app.area,
-        chair: app.chair,
-        specialty: app.specialty,
-        price: app.price,
-        services: app.services,
-        email: app.email,
-        passwordHash: app.password_hash,
-      });
+  await withTransaction(async (client) => {
+    const inserted = await client.query(
+      `INSERT INTO stylists (slug, name, area, chair, specialty, price, services, email, password_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [slug, app.name, app.area, app.chair, app.specialty, app.price, app.services, app.email, app.password_hash],
+    );
+    const stylistId = inserted.rows[0].id;
 
-    db.prepare(
-      "UPDATE applications SET status = 'approved', decided_at = datetime('now'), stylist_id = ? WHERE id = ?",
-    ).run(stylistInfo.lastInsertRowid, id);
+    await client.query(
+      "UPDATE applications SET status = 'approved', decided_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS'), stylist_id = $1 WHERE id = $2",
+      [stylistId, id],
+    );
   });
-  tx();
 
-  const updated = db.prepare('SELECT * FROM applications WHERE id = ?').get(id) as ApplicationRow;
-  res.json(toApiApplication(updated));
+  const updated = await queryOne<ApplicationRow>('SELECT * FROM applications WHERE id = $1', [id]);
+  res.json(toApiApplication(updated!));
 });
 
-adminRouter.post('/applications/:id/reject', (req: AuthedRequest, res) => {
+adminRouter.post('/applications/:id/reject', async (req: AuthedRequest, res) => {
   const id = Number(req.params.id);
-  const info = db
-    .prepare("UPDATE applications SET status = 'rejected', decided_at = datetime('now') WHERE id = ? AND status = 'pending'")
-    .run(id);
-  if (info.changes === 0) {
+  const result = await query(
+    "UPDATE applications SET status = 'rejected', decided_at = to_char(now(), 'YYYY-MM-DD HH24:MI:SS') WHERE id = $1 AND status = 'pending' RETURNING id",
+    [id],
+  );
+  if (result.length === 0) {
     res.status(404).json({ error: 'Not found or already decided' });
     return;
   }
-  const updated = db.prepare('SELECT * FROM applications WHERE id = ?').get(id) as ApplicationRow;
-  res.json(toApiApplication(updated));
+  const updated = await queryOne<ApplicationRow>('SELECT * FROM applications WHERE id = $1', [id]);
+  res.json(toApiApplication(updated!));
 });
 
 // Fully removes a listing — their reviews, the application record that
 // created them, and the stylist row itself. Used for cleaning up test/wrong
 // listings; there's no "soft delete" here, so this can't be undone.
-adminRouter.delete('/stylists/:slug', (req: AuthedRequest, res) => {
-  const stylist = db.prepare('SELECT * FROM stylists WHERE slug = ?').get(req.params.slug) as StylistRow | undefined;
+adminRouter.delete('/stylists/:slug', async (req: AuthedRequest, res) => {
+  const stylist = await queryOne<StylistRow>('SELECT * FROM stylists WHERE slug = $1', [req.params.slug]);
   if (!stylist) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
 
-  const tx = db.transaction(() => {
-    db.prepare('DELETE FROM reviews WHERE stylist_id = ?').run(stylist.id);
-    db.prepare('DELETE FROM applications WHERE stylist_id = ?').run(stylist.id);
-    db.prepare('DELETE FROM stylists WHERE id = ?').run(stylist.id);
+  await withTransaction(async (client) => {
+    await client.query('DELETE FROM reviews WHERE stylist_id = $1', [stylist.id]);
+    await client.query('DELETE FROM applications WHERE stylist_id = $1', [stylist.id]);
+    await client.query('DELETE FROM stylists WHERE id = $1', [stylist.id]);
   });
-  tx();
 
   res.json({ ok: true });
 });

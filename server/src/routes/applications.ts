@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { query, queryOne } from '../db.js';
 import { hashPassword } from '../auth.js';
 import { notifyNewApplication } from '../email.js';
 
@@ -7,7 +7,7 @@ export const applicationsRouter = Router();
 
 const CHAIRS = new Set(['travels', 'salon']);
 
-applicationsRouter.post('/', (req, res) => {
+applicationsRouter.post('/', async (req, res) => {
   const { name, area, chair, specialty, price, services, email, password, note } = req.body ?? {};
 
   if (typeof name !== 'string' || !name.trim()) {
@@ -42,8 +42,8 @@ applicationsRouter.post('/', (req, res) => {
   const normalizedEmail = email.trim().toLowerCase();
 
   const emailTaken =
-    db.prepare('SELECT 1 FROM stylists WHERE email = ?').get(normalizedEmail) ||
-    db.prepare("SELECT 1 FROM applications WHERE email = ? AND status = 'pending'").get(normalizedEmail);
+    (await queryOne('SELECT 1 FROM stylists WHERE email = $1', [normalizedEmail])) ||
+    (await queryOne("SELECT 1 FROM applications WHERE email = $1 AND status = 'pending'", [normalizedEmail]));
   if (emailTaken) {
     res.status(409).json({ error: 'That email already has an account or a pending application' });
     return;
@@ -54,20 +54,21 @@ applicationsRouter.post('/', (req, res) => {
   const trimmedSpecialty = specialty.trim();
   const trimmedNote = typeof note === 'string' ? note.trim() || null : null;
 
-  db.prepare(
+  await query(
     `INSERT INTO applications (status, name, area, chair, specialty, price, services, email, password_hash, note)
-     VALUES ('pending', @name, @area, @chair, @specialty, @price, @services, @email, @passwordHash, @note)`,
-  ).run({
-    name: trimmedName,
-    area: trimmedArea,
-    chair,
-    specialty: trimmedSpecialty,
-    price: typeof price === 'string' ? price.trim() || null : null,
-    services: JSON.stringify(services),
-    email: normalizedEmail,
-    passwordHash: hashPassword(password),
-    note: trimmedNote,
-  });
+     VALUES ('pending', $1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      trimmedName,
+      trimmedArea,
+      chair,
+      trimmedSpecialty,
+      typeof price === 'string' ? price.trim() || null : null,
+      JSON.stringify(services),
+      normalizedEmail,
+      hashPassword(password),
+      trimmedNote,
+    ],
+  );
 
   res.status(201).json({ status: 'pending' });
 

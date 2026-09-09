@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { db } from './db.js';
+import { pool, query, initSchema } from './db.js';
 import { hashPassword } from './auth.js';
 
 const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
@@ -15,11 +15,13 @@ if (password.length < 8) {
   process.exit(1);
 }
 
-const passwordHash = hashPassword(password);
+await initSchema();
 
-db.prepare(
-  `INSERT INTO admin_users (email, password_hash) VALUES (@email, @passwordHash)
+await query(
+  `INSERT INTO admin_users (email, password_hash) VALUES ($1, $2)
    ON CONFLICT (email) DO UPDATE SET password_hash = excluded.password_hash`,
-).run({ email, passwordHash });
+  [email, hashPassword(password)],
+);
 
 console.log(`Admin account ready for ${email}.`);
+await pool.end();

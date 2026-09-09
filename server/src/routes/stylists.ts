@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { query, queryOne } from '../db.js';
 import { requireStylist, signToken, verifyPassword, type AuthedRequest } from '../auth.js';
 
 export const stylistsRouter = Router();
@@ -33,8 +33,8 @@ interface ReviewRow {
   created_at: string;
 }
 
-function getStylistBySlug(slug: string): StylistRow | undefined {
-  return db.prepare('SELECT * FROM stylists WHERE slug = ?').get(slug) as StylistRow | undefined;
+function getStylistBySlug(slug: string): Promise<StylistRow | undefined> {
+  return queryOne<StylistRow>('SELECT * FROM stylists WHERE slug = $1', [slug]);
 }
 
 function toApiReview(row: ReviewRow) {
@@ -53,55 +53,51 @@ function toApiReview(row: ReviewRow) {
 // Public: every real stylist, with review stats computed live from the
 // reviews table — there is no seed data and no invented scores, so a
 // stylist with zero reviews shows 0/none rather than a fabricated number.
-stylistsRouter.get('/', (_req, res) => {
-  const rows = db
-    .prepare(
-      `SELECT s.id, s.slug, s.name, s.area, s.chair, s.specialty, s.price, s.services,
-        (SELECT COUNT(*) FROM reviews r WHERE r.stylist_id = s.id) AS review_count,
-        (SELECT AVG(rating) FROM reviews r WHERE r.stylist_id = s.id) AS avg_rating,
-        (SELECT answer_a FROM reviews r WHERE r.stylist_id = s.id ORDER BY r.id DESC LIMIT 1) AS latest_quote,
-        (SELECT reply FROM reviews r WHERE r.stylist_id = s.id ORDER BY r.id DESC LIMIT 1) AS latest_reply
-       FROM stylists s
-       ORDER BY s.id DESC`,
-    )
-    .all() as (StylistRow & {
-    review_count: number;
-    avg_rating: number | null;
-    latest_quote: string | null;
-    latest_reply: string | null;
-  })[];
+stylistsRouter.get('/', async (_req, res) => {
+  const rows = await query<
+    StylistRow & { review_count: string; avg_rating: string | null; latest_quote: string | null; latest_reply: string | null }
+  >(`
+    SELECT s.id, s.slug, s.name, s.area, s.chair, s.specialty, s.price, s.services,
+      (SELECT COUNT(*) FROM reviews r WHERE r.stylist_id = s.id) AS review_count,
+      (SELECT AVG(rating) FROM reviews r WHERE r.stylist_id = s.id) AS avg_rating,
+      (SELECT answer_a FROM reviews r WHERE r.stylist_id = s.id ORDER BY r.id DESC LIMIT 1) AS latest_quote,
+      (SELECT reply FROM reviews r WHERE r.stylist_id = s.id ORDER BY r.id DESC LIMIT 1) AS latest_reply
+     FROM stylists s
+     ORDER BY s.id DESC
+  `);
 
   res.json(
-    rows.map((r) => ({
-      id: r.slug,
-      name: r.name,
-      area: r.area,
-      chair: r.chair,
-      specialty: r.specialty,
-      price: r.price,
-      services: JSON.parse(r.services) as string[],
-      score: r.avg_rating ? Math.round(r.avg_rating * 10) / 10 : null,
-      verified: r.review_count,
-      quote: r.latest_quote,
-      reply: r.latest_reply,
-    })),
+    rows.map((r) => {
+      const avg = r.avg_rating !== null ? Number(r.avg_rating) : null;
+      return {
+        id: r.slug,
+        name: r.name,
+        area: r.area,
+        chair: r.chair,
+        specialty: r.specialty,
+        price: r.price,
+        services: JSON.parse(r.services) as string[],
+        score: avg !== null ? Math.round(avg * 10) / 10 : null,
+        verified: Number(r.review_count),
+        quote: r.latest_quote,
+        reply: r.latest_reply,
+      };
+    }),
   );
 });
 
-stylistsRouter.get('/:slug/reviews', (req, res) => {
-  const stylist = getStylistBySlug(req.params.slug);
+stylistsRouter.get('/:slug/reviews', async (req, res) => {
+  const stylist = await getStylistBySlug(req.params.slug);
   if (!stylist) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
-  const rows = db
-    .prepare('SELECT * FROM reviews WHERE stylist_id = ? ORDER BY id DESC')
-    .all(stylist.id) as ReviewRow[];
+  const rows = await query<ReviewRow>('SELECT * FROM reviews WHERE stylist_id = $1 ORDER BY id DESC', [stylist.id]);
   res.json(rows.map(toApiReview));
 });
 
-stylistsRouter.post('/:slug/reviews', (req, res) => {
-  const stylist = getStylistBySlug(req.params.slug);
+stylistsRouter.post('/:slug/reviews', async (req, res) => {
+  const stylist = await getStylistBySlug(req.params.slug);
   if (!stylist) {
     res.status(404).json({ error: 'Not found' });
     return;
@@ -125,35 +121,32 @@ stylistsRouter.post('/:slug/reviews', (req, res) => {
     return;
   }
 
-  const info = db
-    .prepare(
-      `INSERT INTO reviews (stylist_id, rating, services, paid, photos, answer_a, answer_b, answer_c)
-       VALUES (@stylistId, @rating, @services, @paid, @photos, @a, @b, @c)`,
-    )
-    .run({
-      stylistId: stylist.id,
-      rating: Math.round(rating),
-      services: JSON.stringify(services),
-      paid: typeof paid === 'string' ? paid.trim() || null : null,
-      photos: typeof photos === 'number' ? Math.max(0, Math.min(3, Math.round(photos))) : 0,
-      a: a || null,
-      b: b || null,
-      c: c || null,
-    });
+  const inserted = await queryOne<{ id: number }>(
+    `INSERT INTO reviews (stylist_id, rating, services, paid, photos, answer_a, answer_b, answer_c)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+    [
+      stylist.id,
+      Math.round(rating),
+      JSON.stringify(services),
+      typeof paid === 'string' ? paid.trim() || null : null,
+      typeof photos === 'number' ? Math.max(0, Math.min(3, Math.round(photos))) : 0,
+      a || null,
+      b || null,
+      c || null,
+    ],
+  );
 
-  res.status(201).json({ id: info.lastInsertRowid });
+  res.status(201).json({ id: inserted?.id });
 });
 
-stylistsRouter.post('/login', (req, res) => {
+stylistsRouter.post('/login', async (req, res) => {
   const { email, password } = req.body ?? {};
   if (typeof email !== 'string' || typeof password !== 'string') {
     res.status(400).json({ error: 'email and password are required' });
     return;
   }
 
-  const stylist = db.prepare('SELECT * FROM stylists WHERE email = ?').get(email.trim().toLowerCase()) as
-    | StylistRow
-    | undefined;
+  const stylist = await queryOne<StylistRow>('SELECT * FROM stylists WHERE email = $1', [email.trim().toLowerCase()]);
 
   if (!stylist || !verifyPassword(password, stylist.password_hash)) {
     res.status(401).json({ error: 'Wrong email or password' });
@@ -164,16 +157,16 @@ stylistsRouter.post('/login', (req, res) => {
   res.json({ token, slug: stylist.slug, name: stylist.name });
 });
 
-function assertOwnStylist(req: AuthedRequest, slug: string): StylistRow | null {
-  const stylist = getStylistBySlug(slug);
+async function assertOwnStylist(req: AuthedRequest, slug: string): Promise<StylistRow | null> {
+  const stylist = await getStylistBySlug(slug);
   if (!stylist || stylist.id !== req.auth?.sub) return null;
   return stylist;
 }
 
-stylistsRouter.post('/:slug/profile', requireStylist, (req: AuthedRequest, res) => {
-  const stylist = assertOwnStylist(req, String(req.params.slug));
+stylistsRouter.post('/:slug/profile', requireStylist, async (req: AuthedRequest, res) => {
+  const stylist = await assertOwnStylist(req, String(req.params.slug));
   if (!stylist) {
-    res.status(403).json({ error: "You can only edit your own profile" });
+    res.status(403).json({ error: 'You can only edit your own profile' });
     return;
   }
 
@@ -195,29 +188,29 @@ stylistsRouter.post('/:slug/profile', requireStylist, (req: AuthedRequest, res) 
     return;
   }
 
-  db.prepare('UPDATE stylists SET area = ?, chair = ?, specialty = ?, price = ?, services = ? WHERE id = ?').run(
+  await query('UPDATE stylists SET area = $1, chair = $2, specialty = $3, price = $4, services = $5 WHERE id = $6', [
     area.trim(),
     chair,
     specialty.trim(),
     typeof price === 'string' ? price.trim() || null : null,
     JSON.stringify(services),
     stylist.id,
-  );
+  ]);
 
   res.json({ ok: true });
 });
 
-stylistsRouter.post('/:slug/reviews/:reviewId/reply', requireStylist, (req: AuthedRequest, res) => {
-  const stylist = assertOwnStylist(req, String(req.params.slug));
+stylistsRouter.post('/:slug/reviews/:reviewId/reply', requireStylist, async (req: AuthedRequest, res) => {
+  const stylist = await assertOwnStylist(req, String(req.params.slug));
   if (!stylist) {
     res.status(403).json({ error: 'You can only reply on your own profile' });
     return;
   }
 
-  const review = db.prepare('SELECT * FROM reviews WHERE id = ? AND stylist_id = ?').get(
+  const review = await queryOne<ReviewRow>('SELECT * FROM reviews WHERE id = $1 AND stylist_id = $2', [
     Number(req.params.reviewId),
     stylist.id,
-  ) as ReviewRow | undefined;
+  ]);
   if (!review) {
     res.status(404).json({ error: 'Not found' });
     return;
@@ -233,6 +226,6 @@ stylistsRouter.post('/:slug/reviews/:reviewId/reply', requireStylist, (req: Auth
     return;
   }
 
-  db.prepare('UPDATE reviews SET reply = ? WHERE id = ?').run(reply.trim(), review.id);
+  await query('UPDATE reviews SET reply = $1 WHERE id = $2', [reply.trim(), review.id]);
   res.json({ reply: reply.trim() });
 });

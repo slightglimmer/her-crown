@@ -1,4 +1,4 @@
-import { db } from './db.js';
+import { queryOne } from './db.js';
 
 function base(name: string): string {
   return (
@@ -11,12 +11,11 @@ function base(name: string): string {
   );
 }
 
-export function uniqueSlug(name: string): string {
+export async function uniqueSlug(name: string): Promise<string> {
   const root = base(name);
-  const exists = db.prepare('SELECT 1 FROM stylists WHERE slug = ?');
-  if (!exists.get(root)) return root;
+  if (!(await queryOne('SELECT 1 FROM stylists WHERE slug = $1', [root]))) return root;
   for (let i = 2; ; i++) {
     const candidate = `${root}-${i}`;
-    if (!exists.get(candidate)) return candidate;
+    if (!(await queryOne('SELECT 1 FROM stylists WHERE slug = $1', [candidate]))) return candidate;
   }
 }
