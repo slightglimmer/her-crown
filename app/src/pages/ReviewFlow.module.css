@@ -86,6 +86,17 @@
   border: 1px solid transparent;
 }
 
+.stylistCardWithPhoto {
+  grid-template-columns: auto 1fr auto;
+}
+
+.stylistPhoto {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
 .stylistCardRight {
   text-align: right;
   display: grid;

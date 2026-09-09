@@ -91,6 +91,13 @@
   align-content: start;
 }
 
+.recPhoto {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
 .recScoreRow {
   display: flex;
   align-items: center;
@@ -154,6 +161,17 @@
   align-items: start;
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-divider);
+}
+
+.rowWithPhoto {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.rowPhoto {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
 }
 
 .area {

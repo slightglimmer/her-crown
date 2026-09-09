@@ -51,9 +51,16 @@ export function StylistAuthProvider({ children }: { children: ReactNode }) {
   const stylistFetch = useCallback(
     async (path: string, init?: RequestInit) => {
       if (!session) throw new Error('Not logged in');
+      // FormData (file uploads) needs the browser to set its own
+      // multipart Content-Type with the boundary — never set it ourselves.
+      const isFormData = init?.body instanceof FormData;
       const res = await fetch(`${API_BASE}${path}`, {
         ...init,
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${session.token}`, ...init?.headers },
+        headers: {
+          ...(isFormData ? {} : { 'content-type': 'application/json' }),
+          authorization: `Bearer ${session.token}`,
+          ...init?.headers,
+        },
       });
       if (res.status === 401) {
         logout();

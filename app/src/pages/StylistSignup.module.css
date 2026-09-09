@@ -88,3 +88,53 @@
   max-width: 56ch;
   margin: var(--space-4) 0 0;
 }
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.photoSlot {
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: var(--space-3);
+  border: 1.5px dashed var(--color-neutral-400);
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-100);
+  font-family: var(--font-body);
+}
+
+.photoSlot[data-filled] {
+  background: var(--color-accent-100);
+  border-color: var(--color-accent);
+}
+
+.photoTitle {
+  font-family: var(--font-heading);
+  font-size: 16px;
+}
+
+.photoNote {
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

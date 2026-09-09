@@ -9,3 +9,7 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<unknow
   if (!res.ok) throw new Error((body as { error?: string }).error ?? `Request failed (${res.status})`);
   return body;
 }
+
+export function stylistPhotoUrl(slug: string): string {
+  return `${API_BASE}/api/stylists/${slug}/photo`;
+}

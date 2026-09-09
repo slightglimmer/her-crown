@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
+import { API_BASE } from '../api/http';
 import { useAdminAuth } from '../state/AdminAuthContext';
 import { useStylists } from '../state/StylistsContext';
 import styles from './AdminDashboard.module.css';
@@ -21,6 +22,56 @@ interface Application {
   createdAt: string;
   decidedAt: string | null;
   stylistSlug: string | null;
+}
+
+// Proof photos aren't public — a plain <img src> can't send the admin's
+// auth header, so this fetches the bytes as a blob and hands the browser
+// an object URL instead.
+function AuthedThumb({ src, token }: { src: string; token: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    fetch(src, { headers: { authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.blob() : Promise.reject()))
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src, token]);
+
+  if (!url) return null;
+  return <img src={url} alt="" className={styles.proofThumb} />;
+}
+
+function ApplicationPhotos({ applicationId, token }: { applicationId: number; token: string }) {
+  const [photos, setPhotos] = useState<{ id: number; mimeType: string }[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/admin/applications/${applicationId}/photos`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
+  }, [applicationId, token]);
+
+  if (photos.length === 0) return null;
+
+  return (
+    <div className={styles.proofRow}>
+      {photos.map((p) => (
+        <AuthedThumb key={p.id} src={`${API_BASE}/api/admin/applications/${applicationId}/photos/${p.id}`} token={token} />
+      ))}
+    </div>
+  );
 }
 
 const TABS: { key: Tab; label: string }[] = [
@@ -136,6 +187,7 @@ export function AdminDashboard() {
                   {a.specialty} {a.price && <>· {a.price} </>}· {a.services.join(', ')}
                 </div>
                 {a.note && <div className={styles.note}>{a.note}</div>}
+                <ApplicationPhotos applicationId={a.id} token={session.token} />
                 <div className={styles.timestamp}>
                   Submitted {a.createdAt}
                   {a.decidedAt && <> · decided {a.decidedAt}</>}

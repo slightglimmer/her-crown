@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query, queryOne } from '../db.js';
 import { requireStylist, signToken, verifyPassword, type AuthedRequest } from '../auth.js';
+import { upload } from '../upload.js';
 
 export const stylistsRouter = Router();
 
@@ -55,9 +56,16 @@ function toApiReview(row: ReviewRow) {
 // stylist with zero reviews shows 0/none rather than a fabricated number.
 stylistsRouter.get('/', async (_req, res) => {
   const rows = await query<
-    StylistRow & { review_count: string; avg_rating: string | null; latest_quote: string | null; latest_reply: string | null }
+    StylistRow & {
+      review_count: string;
+      avg_rating: string | null;
+      latest_quote: string | null;
+      latest_reply: string | null;
+      has_photo: boolean;
+    }
   >(`
     SELECT s.id, s.slug, s.name, s.area, s.chair, s.specialty, s.price, s.services,
+      (s.photo IS NOT NULL) AS has_photo,
       (SELECT COUNT(*) FROM reviews r WHERE r.stylist_id = s.id) AS review_count,
       (SELECT AVG(rating) FROM reviews r WHERE r.stylist_id = s.id) AS avg_rating,
       (SELECT answer_a FROM reviews r WHERE r.stylist_id = s.id ORDER BY r.id DESC LIMIT 1) AS latest_quote,
@@ -81,6 +89,7 @@ stylistsRouter.get('/', async (_req, res) => {
         verified: Number(r.review_count),
         quote: r.latest_quote,
         reply: r.latest_reply,
+        hasPhoto: r.has_photo,
       };
     }),
   );
@@ -228,4 +237,39 @@ stylistsRouter.post('/:slug/reviews/:reviewId/reply', requireStylist, async (req
 
   await query('UPDATE reviews SET reply = $1 WHERE id = $2', [reply.trim(), review.id]);
   res.json({ reply: reply.trim() });
+});
+
+// Public: the actual image bytes, so a plain <img src> works with no auth.
+stylistsRouter.get('/:slug/photo', async (req, res) => {
+  const row = await queryOne<{ photo: Buffer | null; photo_type: string | null }>(
+    'SELECT photo, photo_type FROM stylists WHERE slug = $1',
+    [req.params.slug],
+  );
+  if (!row?.photo || !row.photo_type) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader('Content-Type', row.photo_type);
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  res.send(row.photo);
+});
+
+stylistsRouter.post('/:slug/photo', requireStylist, upload.single('photo'), async (req: AuthedRequest, res) => {
+  const stylist = await assertOwnStylist(req, String(req.params.slug));
+  if (!stylist) {
+    res.status(403).json({ error: 'You can only edit your own profile' });
+    return;
+  }
+  if (!req.file) {
+    res.status(400).json({ error: 'photo is required' });
+    return;
+  }
+
+  await query('UPDATE stylists SET photo = $1, photo_type = $2 WHERE id = $3', [
+    req.file.buffer,
+    req.file.mimetype,
+    stylist.id,
+  ]);
+
+  res.json({ ok: true });
 });

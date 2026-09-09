@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
 import { ServiceChips } from '../components/ServiceChips';
 import { SERVICES, type Chair } from '../data/stylists';
-import { apiFetch } from '../api/http';
+import { apiFetch, stylistPhotoUrl } from '../api/http';
 import { useStylistAuth } from '../state/StylistAuthContext';
 import { useStylists } from '../state/StylistsContext';
 import styles from './StylistDashboard.module.css';
@@ -43,6 +43,11 @@ export function StylistDashboard() {
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [replying, setReplying] = useState<number | null>(null);
 
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoVersion, setPhotoVersion] = useState(0);
+
   useEffect(() => {
     if (me && !seeded) {
       setArea(me.area);
@@ -81,6 +86,24 @@ export function StylistDashboard() {
       setError(err instanceof Error ? err.message : 'Could not save');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePhotoChosen(file: File | null) {
+    if (!file || !session) return;
+    setUploadingPhoto(true);
+    setPhotoError(null);
+    try {
+      const form = new FormData();
+      form.append('photo', file);
+      await stylistFetch(`/api/stylists/${session.slug}/photo`, { method: 'POST', body: form });
+      await refresh();
+      setPhotoVersion((v) => v + 1);
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Could not upload photo');
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
     }
   }
 
@@ -124,6 +147,36 @@ export function StylistDashboard() {
             <p className={styles.empty}>Loading your profile…</p>
           ) : (
             <div className={styles.editForm}>
+              <div className={styles.photoRow}>
+                {me?.hasPhoto ? (
+                  <img
+                    className={styles.photoPreview}
+                    src={`${stylistPhotoUrl(session.slug)}?v=${photoVersion}`}
+                    alt=""
+                  />
+                ) : (
+                  <div className={styles.photoPlaceholder}>No photo yet</div>
+                )}
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={uploadingPhoto}
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    {me?.hasPhoto ? 'Change photo' : 'Upload photo'}
+                  </button>
+                  <div className={styles.photoNote}>JPG, PNG, WEBP or GIF, up to 5MB.</div>
+                  {photoError && <div className={styles.photoNote} style={{ color: 'var(--color-accent-2-700)' }}>{photoError}</div>}
+                </div>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className={styles.visuallyHidden}
+                  onChange={(e) => handlePhotoChosen(e.target.files?.[0] ?? null)}
+                />
+              </div>
               <div className="field">
                 <label htmlFor="d-area">Area</label>
                 <input className="input" id="d-area" value={area} onChange={(e) => { setArea(e.target.value); setJustSaved(false); }} />

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
 import { ServiceChips } from '../components/ServiceChips';
 import { SERVICES, type Chair } from '../data/stylists';
-import { apiFetch } from '../api/http';
+import { API_BASE, apiFetch } from '../api/http';
 import styles from './StylistSignup.module.css';
+
+const PHOTO_SLOTS = 3;
 
 const CHAIRS: { key: Chair; label: string }[] = [
   { key: 'travels', label: 'Travels to you' },
@@ -21,9 +23,23 @@ export function StylistSignup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [note, setNote] = useState('');
+  const [photos, setPhotos] = useState<(File | null)[]>(Array(PHOTO_SLOTS).fill(null));
+  const photoInputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [photoWarning, setPhotoWarning] = useState<string | null>(null);
+
+  function onPhotoChosen(slot: number, file: File | null) {
+    if (!file) return;
+    setPhotos((prev) => prev.map((p, i) => (i === slot ? file : p)));
+    const ref = photoInputRefs[slot].current;
+    if (ref) ref.value = '';
+  }
+
+  function removePhoto(slot: number) {
+    setPhotos((prev) => prev.map((p, i) => (i === slot ? null : p)));
+  }
 
   function toggleService(s: string) {
     setServices((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : prev.concat(s)));
@@ -47,8 +63,9 @@ export function StylistSignup() {
     if (missing) return;
     setSubmitting(true);
     setError(null);
+    setPhotoWarning(null);
     try {
-      await apiFetch('/api/applications', {
+      const created = (await apiFetch('/api/applications', {
         method: 'POST',
         body: JSON.stringify({
           name: name.trim(),
@@ -61,7 +78,22 @@ export function StylistSignup() {
           password,
           note: note.trim() || undefined,
         }),
-      });
+      })) as { id: number };
+
+      const chosenPhotos = photos.filter((p): p is File => p !== null);
+      if (chosenPhotos.length > 0) {
+        try {
+          const form = new FormData();
+          chosenPhotos.forEach((f) => form.append('photos', f));
+          const res = await fetch(`${API_BASE}/api/applications/${created.id}/photos`, { method: 'POST', body: form });
+          if (!res.ok) throw new Error();
+        } catch {
+          // The application itself is already saved — a photo hiccup
+          // shouldn't block the submission, just gets flagged below.
+          setPhotoWarning("Your application went through, but the photos didn't upload. You can skip them — the note field still works.");
+        }
+      }
+
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -82,6 +114,11 @@ export function StylistSignup() {
               A person checks every application against public business info before it goes live — usually within a
               day. Once it's approved, log in with the email and password you set here to manage your profile.
             </p>
+            {photoWarning && (
+              <p className={styles.doneBody} style={{ color: 'var(--color-accent-2-700)' }}>
+                {photoWarning}
+              </p>
+            )}
             <Link to="/" className="btn btn-secondary" style={{ marginTop: 24 }}>
               Back to directory
             </Link>
@@ -185,6 +222,33 @@ export function StylistSignup() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Link to your booking page or Instagram, business license number, etc."
               />
+            </div>
+            <div className="field">
+              <label>Proof photos (optional)</label>
+              <div className={styles.photoGrid}>
+                {photos.map((file, i) => (
+                  <div key={i}>
+                    <button
+                      type="button"
+                      className={styles.photoSlot}
+                      data-filled={file ? true : undefined}
+                      onClick={() => (file ? removePhoto(i) : photoInputRefs[i].current?.click())}
+                    >
+                      <div className={styles.photoTitle}>{file ? 'Added ✓' : 'Add a photo'}</div>
+                      <div className={styles.photoNote}>
+                        {file ? `${file.name} · tap to remove` : 'Business license, storefront, you at work — anything.'}
+                      </div>
+                    </button>
+                    <input
+                      ref={photoInputRefs[i]}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className={styles.visuallyHidden}
+                      onChange={(e) => onPhotoChosen(i, e.target.files?.[0] ?? null)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
 import { ServiceChips } from '../components/ServiceChips';
 import { SERVICES, type Chair, type Stylist } from '../data/stylists';
+import { stylistPhotoUrl } from '../api/http';
 import { useStylists } from '../state/StylistsContext';
 import styles from './StylistDirectory.module.css';
 
@@ -94,6 +95,7 @@ export function StylistDirectory() {
             <>
               <Link to="/review">Rate a stylist</Link>
               <Link to="/join">List your chair</Link>
+              <Link to="/stylist/login">Stylist login</Link>
             </>
           }
         />
@@ -173,6 +175,7 @@ export function StylistDirectory() {
                 <div className={styles.recGrid}>
                   {recs.map((r) => (
                     <div className={`card ${styles.recCard}`} key={r.id}>
+                      {r.hasPhoto && <img className={styles.recPhoto} src={stylistPhotoUrl(r.id)} alt="" />}
                       <div className="card-kicker">{r.why}</div>
                       <div className="card-title" style={{ fontSize: 21 }}>
                         {r.name}
@@ -211,7 +214,8 @@ export function StylistDirectory() {
 
             <div className={styles.results}>
               {results.map((st) => (
-                <div className={styles.row} key={st.id}>
+                <div className={`${styles.row} ${st.hasPhoto ? styles.rowWithPhoto : ''}`} key={st.id}>
+                  {st.hasPhoto && <img className={styles.rowPhoto} src={stylistPhotoUrl(st.id)} alt="" />}
                   <div>
                     <div className={styles.area}>{st.area}</div>
                     <div className={styles.name}>{st.name}</div>

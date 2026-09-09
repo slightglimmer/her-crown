@@ -61,8 +61,16 @@ export async function initSchema() {
       services TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      photo BYTEA,
+      photo_type TEXT,
       created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
     );
+
+    -- Columns added after the table already existed on some deployments —
+    -- CREATE TABLE IF NOT EXISTS above is a no-op there, so these upgrade
+    -- an existing stylists table in place.
+    ALTER TABLE stylists ADD COLUMN IF NOT EXISTS photo BYTEA;
+    ALTER TABLE stylists ADD COLUMN IF NOT EXISTS photo_type TEXT;
 
     -- A signup application. Holds its own copy of the profile fields and
     -- credentials; approval copies them into a new stylists row.
@@ -97,7 +105,19 @@ export async function initSchema() {
       created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
     );
 
+    -- Proof photos attached to a signup application (business license,
+    -- work photos, whatever the applicant chooses) — up to 3, enforced in
+    -- the route handler, not here.
+    CREATE TABLE IF NOT EXISTS application_photos (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER NOT NULL REFERENCES applications (id),
+      data BYTEA NOT NULL,
+      mime_type TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    );
+
     CREATE INDEX IF NOT EXISTS idx_reviews_stylist ON reviews (stylist_id, id DESC);
     CREATE INDEX IF NOT EXISTS idx_applications_status ON applications (status, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_application_photos_app ON application_photos (application_id);
   `);
 }

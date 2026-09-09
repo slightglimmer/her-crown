@@ -144,9 +144,34 @@ adminRouter.delete('/stylists/:slug', async (req: AuthedRequest, res) => {
 
   await withTransaction(async (client) => {
     await client.query('DELETE FROM reviews WHERE stylist_id = $1', [stylist.id]);
+    await client.query(
+      'DELETE FROM application_photos WHERE application_id IN (SELECT id FROM applications WHERE stylist_id = $1)',
+      [stylist.id],
+    );
     await client.query('DELETE FROM applications WHERE stylist_id = $1', [stylist.id]);
     await client.query('DELETE FROM stylists WHERE id = $1', [stylist.id]);
   });
 
   res.json({ ok: true });
+});
+
+adminRouter.get('/applications/:id/photos', async (req: AuthedRequest, res) => {
+  const rows = await query<{ id: number; mime_type: string }>(
+    'SELECT id, mime_type FROM application_photos WHERE application_id = $1 ORDER BY id',
+    [Number(req.params.id)],
+  );
+  res.json(rows.map((r) => ({ id: r.id, mimeType: r.mime_type })));
+});
+
+adminRouter.get('/applications/:id/photos/:photoId', async (req: AuthedRequest, res) => {
+  const row = await queryOne<{ data: Buffer; mime_type: string }>(
+    'SELECT data, mime_type FROM application_photos WHERE id = $1 AND application_id = $2',
+    [Number(req.params.photoId), Number(req.params.id)],
+  );
+  if (!row) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader('Content-Type', row.mime_type);
+  res.send(row.data);
 });

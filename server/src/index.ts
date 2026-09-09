@@ -1,11 +1,13 @@
 import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
+import multer from 'multer';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initSchema } from './db.js';
 import { ensureAdminSeeded } from './ensureAdmin.js';
+import { UploadError } from './upload.js';
 import { applicationsRouter } from './routes/applications.js';
 import { stylistsRouter } from './routes/stylists.js';
 import { adminRouter } from './routes/admin.js';
@@ -40,6 +42,23 @@ if (existsSync(clientDist)) {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 }
+
+// Must come last: catches multer's upload errors (bad file type, too big)
+// and reports them as clean 400s instead of Express's default HTML error
+// page. Anything else unexpected becomes a generic 500 — no internals leak.
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE' ? 'Image must be under 5MB' : err.message;
+    res.status(400).json({ error: message });
+    return;
+  }
+  if (err instanceof UploadError) {
+    res.status(400).json({ error: err.message });
+    return;
+  }
+  console.error(err);
+  res.status(500).json({ error: 'Something went wrong' });
+});
 
 app.listen(port, () => {
   console.log(`Her Crown API listening on http://localhost:${port}`);

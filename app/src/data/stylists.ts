@@ -16,6 +16,7 @@ export interface Stylist {
   verified: number;
   quote: string | null;
   reply: string | null;
+  hasPhoto: boolean;
 }
 
 export const SERVICES = [

@@ -104,6 +104,20 @@
   border-left: 2px solid var(--color-accent-2);
 }
 
+.proofRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.proofThumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
 .timestamp {
   font-size: 12px;
   color: var(--color-neutral-700);

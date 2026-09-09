@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
 import { ServiceChips } from '../components/ServiceChips';
 import { SERVICES } from '../data/stylists';
-import { apiFetch } from '../api/http';
+import { apiFetch, stylistPhotoUrl } from '../api/http';
 import { useStylists } from '../state/StylistsContext';
 import styles from './ReviewFlow.module.css';
 
@@ -223,10 +223,11 @@ export function ReviewFlow() {
                   <button
                     key={st.id}
                     type="button"
-                    className={`card ${styles.stylistCard}`}
+                    className={`card ${styles.stylistCard} ${st.hasPhoto ? styles.stylistCardWithPhoto : ''}`}
                     style={{ borderColor: s.stylistId === st.id ? 'var(--color-accent)' : undefined }}
                     onClick={() => pickStylist(st.id)}
                   >
+                    {st.hasPhoto && <img className={styles.stylistPhoto} src={stylistPhotoUrl(st.id)} alt="" />}
                     <span>
                       <span className="card-kicker">{st.area}</span>
                       <span className="card-title" style={{ fontSize: 21, display: 'block' }}>
