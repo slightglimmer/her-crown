@@ -13,3 +13,11 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<unknow
 export function stylistPhotoUrl(slug: string): string {
   return `${API_BASE}/api/stylists/${slug}/photo`;
 }
+
+export function stylistPhotosListUrl(slug: string): string {
+  return `${API_BASE}/api/stylists/${slug}/photos`;
+}
+
+export function stylistPhotoByIdUrl(slug: string, photoId: number): string {
+  return `${API_BASE}/api/stylists/${slug}/photos/${photoId}`;
+}

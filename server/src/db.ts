@@ -61,16 +61,20 @@ export async function initSchema() {
       services TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      photo BYTEA,
-      photo_type TEXT,
       created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
     );
 
-    -- Columns added after the table already existed on some deployments —
-    -- CREATE TABLE IF NOT EXISTS above is a no-op there, so these upgrade
-    -- an existing stylists table in place.
-    ALTER TABLE stylists ADD COLUMN IF NOT EXISTS photo BYTEA;
-    ALTER TABLE stylists ADD COLUMN IF NOT EXISTS photo_type TEXT;
+    -- A stylist's own photos (up to 3, enforced in the route handler).
+    -- Ordered by id; the lowest id is the "cover" photo shown in the
+    -- directory. Supersedes the old single photo/photo_type columns.
+    CREATE TABLE IF NOT EXISTS stylist_photos (
+      id SERIAL PRIMARY KEY,
+      stylist_id INTEGER NOT NULL REFERENCES stylists (id),
+      data BYTEA NOT NULL,
+      mime_type TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    );
+    CREATE INDEX IF NOT EXISTS idx_stylist_photos_stylist ON stylist_photos (stylist_id, id);
 
     -- A signup application. Holds its own copy of the profile fields and
     -- credentials; approval copies them into a new stylists row.
@@ -119,5 +123,28 @@ export async function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_reviews_stylist ON reviews (stylist_id, id DESC);
     CREATE INDEX IF NOT EXISTS idx_applications_status ON applications (status, id DESC);
     CREATE INDEX IF NOT EXISTS idx_application_photos_app ON application_photos (application_id);
+  `);
+
+  await migrateLegacyStylistPhoto();
+}
+
+// Earlier deployments stored one profile photo directly on the stylists
+// row (photo/photo_type columns). Copy any such photo into stylist_photos
+// as that stylist's first photo, then drop the old columns — guarded by an
+// information_schema check so this is a no-op once it's already run.
+async function migrateLegacyStylistPhoto() {
+  const { rows } = await pool.query<{ column_name: string }>(
+    `SELECT column_name FROM information_schema.columns WHERE table_name = 'stylists' AND column_name = 'photo'`,
+  );
+  if (rows.length === 0) return;
+
+  await pool.query(`
+    INSERT INTO stylist_photos (stylist_id, data, mime_type)
+    SELECT id, photo, photo_type FROM stylists
+    WHERE photo IS NOT NULL
+      AND id NOT IN (SELECT stylist_id FROM stylist_photos);
+
+    ALTER TABLE stylists DROP COLUMN photo;
+    ALTER TABLE stylists DROP COLUMN photo_type;
   `);
 }

@@ -3,7 +3,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { Masthead } from '../components/Masthead';
 import { ServiceChips } from '../components/ServiceChips';
 import { SERVICES, type Chair } from '../data/stylists';
-import { apiFetch, stylistPhotoUrl } from '../api/http';
+import { apiFetch, stylistPhotoByIdUrl } from '../api/http';
 import { useStylistAuth } from '../state/StylistAuthContext';
 import { useStylists } from '../state/StylistsContext';
 import styles from './StylistDashboard.module.css';
@@ -12,6 +12,13 @@ const CHAIRS: { key: Chair; label: string }[] = [
   { key: 'travels', label: 'Travels to you' },
   { key: 'salon', label: 'Salon or studio' },
 ];
+
+const PHOTO_SLOTS = 3;
+
+interface StylistPhoto {
+  id: number;
+  mimeType: string;
+}
 
 interface Review {
   id: number;
@@ -43,10 +50,10 @@ export function StylistDashboard() {
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [replying, setReplying] = useState<number | null>(null);
 
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const [photos, setPhotos] = useState<StylistPhoto[] | null>(null);
+  const [busySlot, setBusySlot] = useState<number | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [photoVersion, setPhotoVersion] = useState(0);
 
   useEffect(() => {
     if (me && !seeded) {
@@ -64,6 +71,13 @@ export function StylistDashboard() {
     apiFetch(`/api/stylists/${session.slug}/reviews`)
       .then((data) => setReviews(data as Review[]))
       .catch(() => setReviews([]));
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    apiFetch(`/api/stylists/${session.slug}/photos`)
+      .then((data) => setPhotos(data as StylistPhoto[]))
+      .catch(() => setPhotos([]));
   }, [session]);
 
   if (!session) return <Navigate to="/stylist/login" replace />;
@@ -89,21 +103,39 @@ export function StylistDashboard() {
     }
   }
 
-  async function handlePhotoChosen(file: File | null) {
+  async function handleAddPhoto(slot: number, file: File | null) {
     if (!file || !session) return;
-    setUploadingPhoto(true);
+    setBusySlot(slot);
     setPhotoError(null);
     try {
       const form = new FormData();
-      form.append('photo', file);
-      await stylistFetch(`/api/stylists/${session.slug}/photo`, { method: 'POST', body: form });
+      form.append('photos', file);
+      await stylistFetch(`/api/stylists/${session.slug}/photos`, { method: 'POST', body: form });
+      const updated = (await apiFetch(`/api/stylists/${session.slug}/photos`)) as StylistPhoto[];
+      setPhotos(updated);
       await refresh();
-      setPhotoVersion((v) => v + 1);
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : 'Could not upload photo');
     } finally {
-      setUploadingPhoto(false);
-      if (photoInputRef.current) photoInputRef.current.value = '';
+      setBusySlot(null);
+      const ref = photoInputRefs[slot].current;
+      if (ref) ref.value = '';
+    }
+  }
+
+  async function handleRemovePhoto(slot: number, photoId: number) {
+    if (!session) return;
+    setBusySlot(slot);
+    setPhotoError(null);
+    try {
+      await stylistFetch(`/api/stylists/${session.slug}/photos/${photoId}`, { method: 'DELETE' });
+      const updated = (await apiFetch(`/api/stylists/${session.slug}/photos`)) as StylistPhoto[];
+      setPhotos(updated);
+      await refresh();
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Could not remove photo');
+    } finally {
+      setBusySlot(null);
     }
   }
 
@@ -147,35 +179,49 @@ export function StylistDashboard() {
             <p className={styles.empty}>Loading your profile…</p>
           ) : (
             <div className={styles.editForm}>
-              <div className={styles.photoRow}>
-                {me?.hasPhoto ? (
-                  <img
-                    className={styles.photoPreview}
-                    src={`${stylistPhotoUrl(session.slug)}?v=${photoVersion}`}
-                    alt=""
-                  />
-                ) : (
-                  <div className={styles.photoPlaceholder}>No photo yet</div>
-                )}
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled={uploadingPhoto}
-                    onClick={() => photoInputRef.current?.click()}
-                  >
-                    {me?.hasPhoto ? 'Change photo' : 'Upload photo'}
-                  </button>
-                  <div className={styles.photoNote}>JPG, PNG, WEBP or GIF, up to 5MB.</div>
-                  {photoError && <div className={styles.photoNote} style={{ color: 'var(--color-accent-2-700)' }}>{photoError}</div>}
+              <div className="field">
+                <label>Your photos</label>
+                <div className={styles.photoGrid}>
+                  {Array.from({ length: PHOTO_SLOTS }, (_, i) => {
+                    const photo = photos?.[i];
+                    const busy = busySlot === i;
+                    return (
+                      <div key={i}>
+                        {photo ? (
+                          <button
+                            type="button"
+                            className={styles.photoSlot}
+                            data-filled
+                            disabled={busy}
+                            onClick={() => handleRemovePhoto(i, photo.id)}
+                          >
+                            <img className={styles.photoThumb} src={stylistPhotoByIdUrl(session.slug, photo.id)} alt="" />
+                            <div className={styles.photoNote}>{busy ? 'Removing…' : 'Tap to remove'}</div>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={styles.photoSlot}
+                            disabled={busy}
+                            onClick={() => photoInputRefs[i].current?.click()}
+                          >
+                            <div className={styles.photoTitle}>{busy ? 'Uploading…' : 'Add a photo'}</div>
+                            <div className={styles.photoNote}>{i === 0 ? 'Shown first, in the directory.' : 'Optional.'}</div>
+                          </button>
+                        )}
+                        <input
+                          ref={photoInputRefs[i]}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className={styles.visuallyHidden}
+                          onChange={(e) => handleAddPhoto(i, e.target.files?.[0] ?? null)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className={styles.visuallyHidden}
-                  onChange={(e) => handlePhotoChosen(e.target.files?.[0] ?? null)}
-                />
+                <div className={styles.photoNote}>JPG, PNG, WEBP or GIF, up to 5MB each.</div>
+                {photoError && <div className={styles.photoNote} style={{ color: 'var(--color-accent-2-700)' }}>{photoError}</div>}
               </div>
               <div className="field">
                 <label htmlFor="d-area">Area</label>

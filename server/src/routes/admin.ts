@@ -144,6 +144,7 @@ adminRouter.delete('/stylists/:slug', async (req: AuthedRequest, res) => {
 
   await withTransaction(async (client) => {
     await client.query('DELETE FROM reviews WHERE stylist_id = $1', [stylist.id]);
+    await client.query('DELETE FROM stylist_photos WHERE stylist_id = $1', [stylist.id]);
     await client.query(
       'DELETE FROM application_photos WHERE application_id IN (SELECT id FROM applications WHERE stylist_id = $1)',
       [stylist.id],

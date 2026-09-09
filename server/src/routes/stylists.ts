@@ -6,6 +6,7 @@ import { upload } from '../upload.js';
 export const stylistsRouter = Router();
 
 const CHAIRS = new Set(['travels', 'salon']);
+const MAX_STYLIST_PHOTOS = 3;
 
 interface StylistRow {
   id: number;
@@ -65,7 +66,7 @@ stylistsRouter.get('/', async (_req, res) => {
     }
   >(`
     SELECT s.id, s.slug, s.name, s.area, s.chair, s.specialty, s.price, s.services,
-      (s.photo IS NOT NULL) AS has_photo,
+      EXISTS (SELECT 1 FROM stylist_photos sp WHERE sp.stylist_id = s.id) AS has_photo,
       (SELECT COUNT(*) FROM reviews r WHERE r.stylist_id = s.id) AS review_count,
       (SELECT AVG(rating) FROM reviews r WHERE r.stylist_id = s.id) AS avg_rating,
       (SELECT answer_a FROM reviews r WHERE r.stylist_id = s.id ORDER BY r.id DESC LIMIT 1) AS latest_quote,
@@ -239,37 +240,109 @@ stylistsRouter.post('/:slug/reviews/:reviewId/reply', requireStylist, async (req
   res.json({ reply: reply.trim() });
 });
 
-// Public: the actual image bytes, so a plain <img src> works with no auth.
+// Public: the cover photo (lowest id) as raw bytes, so a plain <img src>
+// works with no auth — this is what the directory, rec cards and review
+// picker show.
 stylistsRouter.get('/:slug/photo', async (req, res) => {
-  const row = await queryOne<{ photo: Buffer | null; photo_type: string | null }>(
-    'SELECT photo, photo_type FROM stylists WHERE slug = $1',
-    [req.params.slug],
-  );
-  if (!row?.photo || !row.photo_type) {
+  const stylist = await getStylistBySlug(req.params.slug);
+  if (!stylist) {
     res.status(404).end();
     return;
   }
-  res.setHeader('Content-Type', row.photo_type);
+  const row = await queryOne<{ data: Buffer; mime_type: string }>(
+    'SELECT data, mime_type FROM stylist_photos WHERE stylist_id = $1 ORDER BY id ASC LIMIT 1',
+    [stylist.id],
+  );
+  if (!row) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader('Content-Type', row.mime_type);
   res.setHeader('Cache-Control', 'private, max-age=300');
-  res.send(row.photo);
+  res.send(row.data);
 });
 
-stylistsRouter.post('/:slug/photo', requireStylist, upload.single('photo'), async (req: AuthedRequest, res) => {
+// Public: the gallery listing and individual photos — not sensitive, so no
+// auth needed to view (only to add/remove).
+stylistsRouter.get('/:slug/photos', async (req, res) => {
+  const stylist = await getStylistBySlug(req.params.slug);
+  if (!stylist) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  const rows = await query<{ id: number; mime_type: string }>(
+    'SELECT id, mime_type FROM stylist_photos WHERE stylist_id = $1 ORDER BY id ASC',
+    [stylist.id],
+  );
+  res.json(rows.map((r) => ({ id: r.id, mimeType: r.mime_type })));
+});
+
+stylistsRouter.get('/:slug/photos/:photoId', async (req, res) => {
+  const stylist = await getStylistBySlug(req.params.slug);
+  if (!stylist) {
+    res.status(404).end();
+    return;
+  }
+  const row = await queryOne<{ data: Buffer; mime_type: string }>(
+    'SELECT data, mime_type FROM stylist_photos WHERE id = $1 AND stylist_id = $2',
+    [Number(req.params.photoId), stylist.id],
+  );
+  if (!row) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader('Content-Type', row.mime_type);
+  res.setHeader('Cache-Control', 'private, max-age=300');
+  res.send(row.data);
+});
+
+stylistsRouter.post('/:slug/photos', requireStylist, upload.array('photos', MAX_STYLIST_PHOTOS), async (req: AuthedRequest, res) => {
   const stylist = await assertOwnStylist(req, String(req.params.slug));
   if (!stylist) {
     res.status(403).json({ error: 'You can only edit your own profile' });
     return;
   }
-  if (!req.file) {
+
+  const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+  if (files.length === 0) {
     res.status(400).json({ error: 'photo is required' });
     return;
   }
 
-  await query('UPDATE stylists SET photo = $1, photo_type = $2 WHERE id = $3', [
-    req.file.buffer,
-    req.file.mimetype,
+  const existing = await queryOne<{ count: string }>('SELECT COUNT(*) AS count FROM stylist_photos WHERE stylist_id = $1', [
     stylist.id,
   ]);
+  if (Number(existing?.count ?? 0) + files.length > MAX_STYLIST_PHOTOS) {
+    res.status(400).json({ error: `Up to ${MAX_STYLIST_PHOTOS} photos total` });
+    return;
+  }
+
+  for (const file of files) {
+    await query('INSERT INTO stylist_photos (stylist_id, data, mime_type) VALUES ($1, $2, $3)', [
+      stylist.id,
+      file.buffer,
+      file.mimetype,
+    ]);
+  }
+
+  res.status(201).json({ ok: true });
+});
+
+stylistsRouter.delete('/:slug/photos/:photoId', requireStylist, async (req: AuthedRequest, res) => {
+  const stylist = await assertOwnStylist(req, String(req.params.slug));
+  if (!stylist) {
+    res.status(403).json({ error: 'You can only edit your own profile' });
+    return;
+  }
+
+  const result = await query('DELETE FROM stylist_photos WHERE id = $1 AND stylist_id = $2 RETURNING id', [
+    Number(req.params.photoId),
+    stylist.id,
+  ]);
+  if (result.length === 0) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
 
   res.json({ ok: true });
 });
