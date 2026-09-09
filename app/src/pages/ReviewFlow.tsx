@@ -193,7 +193,7 @@ export function ReviewFlow() {
   return (
     <div className={styles.page}>
       <div className={styles.wrap}>
-        <Masthead right={<span>Rate your stylist · Atlanta, GA</span>} />
+        <Masthead right={<span>Rate your stylist</span>} />
 
         <div className={styles.rail}>
           {rail.map((r) => (
