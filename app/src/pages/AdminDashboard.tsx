@@ -20,6 +20,7 @@ interface Application {
   note: string | null;
   createdAt: string;
   decidedAt: string | null;
+  stylistSlug: string | null;
 }
 
 const TABS: { key: Tab; label: string }[] = [
@@ -36,6 +37,7 @@ export function AdminDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [busySlug, setBusySlug] = useState<string | null>(null);
 
   const load = useCallback(
     async (t: Tab) => {
@@ -67,6 +69,20 @@ export function AdminDashboard() {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function removeListing(name: string, slug: string) {
+    if (!window.confirm(`Remove ${name}'s listing? This deletes their profile and reviews for good.`)) return;
+    setBusySlug(slug);
+    try {
+      await adminFetch(`/api/admin/stylists/${slug}`, { method: 'DELETE' });
+      await load(tab);
+      await refreshStylists();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setBusySlug(null);
     }
   }
 
@@ -150,6 +166,16 @@ export function AdminDashboard() {
                       Reject
                     </button>
                   </>
+                )}
+                {a.status === 'approved' && a.stylistSlug && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busySlug === a.stylistSlug}
+                    onClick={() => removeListing(a.name, a.stylistSlug!)}
+                  >
+                    Remove listing
+                  </button>
                 )}
               </div>
             </div>

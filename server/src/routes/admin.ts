@@ -28,7 +28,12 @@ interface ApplicationRow {
   decided_at: string | null;
 }
 
-function toApiApplication(row: ApplicationRow) {
+interface StylistRow {
+  id: number;
+  slug: string;
+}
+
+function toApiApplication(row: ApplicationRow & { stylist_slug?: string | null }) {
   return {
     id: row.id,
     status: row.status,
@@ -42,8 +47,15 @@ function toApiApplication(row: ApplicationRow) {
     note: row.note,
     createdAt: row.created_at,
     decidedAt: row.decided_at,
+    stylistSlug: row.stylist_slug ?? null,
   };
 }
+
+const APPLICATION_SELECT = `
+  SELECT a.*, s.slug AS stylist_slug
+  FROM applications a
+  LEFT JOIN stylists s ON s.id = a.stylist_id
+`;
 
 adminRouter.post('/login', (req, res) => {
   const { email, password } = req.body ?? {};
@@ -71,9 +83,9 @@ adminRouter.get('/applications', (req: AuthedRequest, res) => {
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
   const rows = (
     status
-      ? db.prepare('SELECT * FROM applications WHERE status = ? ORDER BY id DESC').all(status)
-      : db.prepare('SELECT * FROM applications ORDER BY id DESC').all()
-  ) as ApplicationRow[];
+      ? db.prepare(`${APPLICATION_SELECT} WHERE a.status = ? ORDER BY a.id DESC`).all(status)
+      : db.prepare(`${APPLICATION_SELECT} ORDER BY a.id DESC`).all()
+  ) as (ApplicationRow & { stylist_slug: string | null })[];
   res.json(rows.map(toApiApplication));
 });
 
@@ -130,4 +142,24 @@ adminRouter.post('/applications/:id/reject', (req: AuthedRequest, res) => {
   }
   const updated = db.prepare('SELECT * FROM applications WHERE id = ?').get(id) as ApplicationRow;
   res.json(toApiApplication(updated));
+});
+
+// Fully removes a listing — their reviews, the application record that
+// created them, and the stylist row itself. Used for cleaning up test/wrong
+// listings; there's no "soft delete" here, so this can't be undone.
+adminRouter.delete('/stylists/:slug', (req: AuthedRequest, res) => {
+  const stylist = db.prepare('SELECT * FROM stylists WHERE slug = ?').get(req.params.slug) as StylistRow | undefined;
+  if (!stylist) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM reviews WHERE stylist_id = ?').run(stylist.id);
+    db.prepare('DELETE FROM applications WHERE stylist_id = ?').run(stylist.id);
+    db.prepare('DELETE FROM stylists WHERE id = ?').run(stylist.id);
+  });
+  tx();
+
+  res.json({ ok: true });
 });
